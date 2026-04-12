@@ -90,7 +90,7 @@ document.getElementById('btnClear').onclick = function() {
 document.getElementById('btnGenerate').onclick = async function() {
   var atn = window._currentATN;
   if (!atn) { alert('请先导入 ATN 文件'); return; }
-  document.getElementById('status').innerText = '正在调用后端解析...';
+  document.getElementById('status').innerText = '正在解析中...';
   document.getElementById('btnGenerate').disabled = true;
   try {
     var res = await fetch(API_BASE + '/api/parse', {
