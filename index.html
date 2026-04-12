@@ -15,33 +15,11 @@
 <span id="fileName" style="margin-left:10px;color:green;font-weight:bold;"></span>
 </div>
 
-<div style="display:flex;gap:30px;">
-<div style="background:#f5f5f5;padding:20px;border-radius:8px;">
-<h3>参数设置</h3>
-
-<div style="margin:10px 0;"><b>方法:</b> <select id="method"><option value="">--</option><option value="CV">CV</option><option value="CA">CA</option></select></div>
-<div style="margin:10px 0;"><b>物种数:</b> <input id="snum" style="width:50px;"></div>
-<div style="margin:8px 0;">反应1: <input id="etr1" style="width:200px;"></div>
-<div style="margin:8px 0;">反应2: <input id="etr2" style="width:200px;"></div>
-<div style="margin:8px 0;">均相1: <input id="hcr1" style="width:200px;"></div>
-<div style="margin:8px 0;">均相2: <input id="hcr2" style="width:200px;"></div>
-<div style="margin:10px 0;"><b>类型:</b> <select id="difftype"><option value="">--</option><option value="L">L</option><option value="S">S</option><option value="C">C</option></select></div>
-<div style="margin:8px 0;">面积: <input id="area" style="width:80px;"></div>
-<div style="margin:8px 0;">浓度: <input id="conc" style="width:180px;"></div>
-<div style="margin:8px 0;">扩散: <input id="diff" style="width:180px;"></div>
-<div style="margin:8px 0;">CV参数: <input id="cv" style="width:200px;"></div>
-<div style="margin:8px 0;">模拟: <input id="sim" style="width:100px;"></div>
-<div style="margin:8px 0;">IR: <input id="ir" style="width:100px;"></div>
-
-<button type="button" id="btnGenerate" style="background:#4a90d9;color:white;padding:12px 30px;border:none;margin:15px 0;">生成网表</button>
-</div>
-
-<div style="flex:1;">
-<textarea id="output" style="width:100%;height:420px;font-family:monospace;" readonly></textarea>
+<div style="max-width:800px;">
+<textarea id="output" style="width:100%;height:420px;font-family:monospace;" readonly placeholder="网表输出将显示在这里"></textarea>
 <br>
 <button type="button" id="btnDownload">下载网表文件</button>
 <p id="status"></p>
-</div>
 </div>
 
 <script>
@@ -71,19 +49,6 @@ document.getElementById('btnClear').onclick = function() {
   document.getElementById('fileName').innerText = '';
   document.getElementById('output').value = '';
   document.getElementById('status').innerText = '';
-  document.getElementById('method').value = '';
-  document.getElementById('snum').value = '';
-  document.getElementById('etr1').value = '';
-  document.getElementById('etr2').value = '';
-  document.getElementById('hcr1').value = '';
-  document.getElementById('hcr2').value = '';
-  document.getElementById('difftype').value = '';
-  document.getElementById('area').value = '';
-  document.getElementById('conc').value = '';
-  document.getElementById('diff').value = '';
-  document.getElementById('cv').value = '';
-  document.getElementById('sim').value = '';
-  document.getElementById('ir').value = '';
   window._currentATN = '';
 };
 
