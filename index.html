@@ -177,7 +177,7 @@ document.getElementById('btnGenerate').addEventListener('click', async function(
       document.getElementById('status').innerText = '解析错误: ' + data.error;
     } else {
       document.getElementById('output').value = data.netlist;
-      document.getElementById('status').innerText = '网表生成完成 (' + data.stats.chars + ' chars, ' + data.stats.lines + ' lines)';
+      document.getElementById('status').innerText = '网表生成完成 (' + data.stats.netlistLength + ' chars, ' + (data.netlist.split('\n').length) + ' lines)';
     }
   } catch (err) {
     document.getElementById('status').innerText = '网络错误: ' + err.message;
