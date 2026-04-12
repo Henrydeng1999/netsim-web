@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>NETSIM 网表生成器</title>
+</head>
+<body>
+<h1>NETSIM 网表生成器</h1>
+<p>导入INPUT.ATN文件，生成网表</p>
+
+<div style="margin-bottom:15px;">
+<input type="file" id="fileInput" accept=".ATN,.atn">
+<button type="button" id="btnLoad">导入文件</button>
+<button type="button" id="btnClear">清空</button>
+<span id="fileName" style="margin-left:10px;color:green;font-weight:bold;"></span>
+</div>
+
+<div style="display:flex;gap:30px;">
+<div style="background:#f5f5f5;padding:20px;border-radius:8px;">
+<h3>参数设置</h3>
+
+<div style="margin:10px 0;"><b>方法:</b> <select id="method"><option value="">--</option><option value="CV">CV</option><option value="CA">CA</option></select></div>
+<div style="margin:10px 0;"><b>物种数:</b> <input id="snum" style="width:50px;"></div>
+<div style="margin:8px 0;">反应1: <input id="etr1" style="width:200px;"></div>
+<div style="margin:8px 0;">反应2: <input id="etr2" style="width:200px;"></div>
+<div style="margin:8px 0;">均相1: <input id="hcr1" style="width:200px;"></div>
+<div style="margin:8px 0;">均相2: <input id="hcr2" style="width:200px;"></div>
+<div style="margin:10px 0;"><b>类型:</b> <select id="difftype"><option value="">--</option><option value="L">L</option><option value="S">S</option><option value="C">C</option></select></div>
+<div style="margin:8px 0;">面积: <input id="area" style="width:80px;"></div>
+<div style="margin:8px 0;">浓度: <input id="conc" style="width:180px;"></div>
+<div style="margin:8px 0;">扩散: <input id="diff" style="width:180px;"></div>
+<div style="margin:8px 0;">CV参数: <input id="cv" style="width:200px;"></div>
+<div style="margin:8px 0;">模拟: <input id="sim" style="width:100px;"></div>
+<div style="margin:8px 0;">IR: <input id="ir" style="width:100px;"></div>
+
+<button type="button" id="btnGenerate" style="background:#4a90d9;color:white;padding:12px 30px;border:none;margin:15px 0;">生成网表</button>
+</div>
+
+<div style="flex:1;">
+<textarea id="output" style="width:100%;height:420px;font-family:monospace;" readonly></textarea>
+<br>
+<button type="button" id="btnDownload">下载网表文件</button>
+<p id="status"></p>
+</div>
+</div>
+
+<script>
+// ============================================================
+//  API 配置 — 部署 CF Workers 后替换为你的实际 API 地址
+// ============================================================
+// 格式: https://netsim-core-api.<你的CF子域名>.workers.dev/api/parse
+// 示例: https://netsim-core-api.henry.workers.dev/api/parse
+var API_BASE = 'https://netsim-core-api.YOUR_SUBDOMAIN.workers.dev';
+// ============================================================
+
+document.getElementById('btnLoad').onclick = function() {
+  var file = document.getElementById('fileInput').files[0];
+  if (!file) { alert('请选择文件'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    // 暂存 ATN 文本，等待生成网表时一起发送
+    window._currentATN = e.target.result;
+    document.getElementById('fileName').innerText = '已导入: ' + file.name;
+    document.getElementById('status').innerText = '已就绪，请点击"生成网表"';
+  };
+  reader.readAsText(file);
+};
+
+document.getElementById('btnClear').onclick = function() {
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileName').innerText = '';
+  document.getElementById('output').value = '';
+  document.getElementById('status').innerText = '';
+  document.getElementById('method').value = '';
+  document.getElementById('snum').value = '';
+  document.getElementById('etr1').value = '';
+  document.getElementById('etr2').value = '';
+  document.getElementById('hcr1').value = '';
+  document.getElementById('hcr2').value = '';
+  document.getElementById('difftype').value = '';
+  document.getElementById('area').value = '';
+  document.getElementById('conc').value = '';
+  document.getElementById('diff').value = '';
+  document.getElementById('cv').value = '';
+  document.getElementById('sim').value = '';
+  document.getElementById('ir').value = '';
+  window._currentATN = '';
+};
+
+document.getElementById('btnGenerate').onclick = async function() {
+  var atn = window._currentATN;
+  if (!atn) { alert('请先导入 ATN 文件'); return; }
+  document.getElementById('status').innerText = '正在调用后端解析...';
+  document.getElementById('btnGenerate').disabled = true;
+  try {
+    var res = await fetch(API_BASE + '/api/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ atn: atn })
+    });
+    var data = await res.json();
+    if (data.error) {
+      document.getElementById('status').innerText = '解析错误: ' + data.error;
+    } else {
+      document.getElementById('output').value = data.netlist;
+      document.getElementById('status').innerText = '网表生成完成! (' + data.stats.chars + ' chars, ' + data.stats.lines + ' lines)';
+    }
+  } catch (err) {
+    document.getElementById('status').innerText = '网络错误: ' + err.message;
+  } finally {
+    document.getElementById('btnGenerate').disabled = false;
+  }
+};
+
+document.getElementById('btnDownload').onclick = function() {
+  var text = document.getElementById('output').value;
+  if (!text) { alert('请先生成网表!'); return; }
+  var inputFile = document.getElementById('fileName').innerText.replace('已导入: ', '');
+  var fileName;
+  if (inputFile) {
+    fileName = inputFile.replace(/\.ATN$/i, '.sp');
+  } else {
+    fileName = 'netlist.sp';
+  }
+  var blob = new Blob([text], { type: 'text/plain' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+};
+</script>
+</body>
+</html>
