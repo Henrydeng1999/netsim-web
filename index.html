@@ -2,62 +2,168 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>NETSIM 网表生成器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NETSIM 网表生成器在线版</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    margin: 0;
+  }
+  .container {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    font-size: 28px;
+    color: #1a1a2e;
+    margin: 0 0 8px 0;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: #666;
+    margin: 0 0 28px 0;
+  }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .file-btn-wrap { position: relative; }
+  .file-btn-wrap input[type="file"] {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .btn-load {
+    background: #e8e8e8;
+    color: #333;
+  }
+  .btn-clear {
+    background: #e8e8e8;
+    color: #555;
+  }
+  .btn-generate {
+    background: #e74c3c;
+    color: #fff;
+    padding: 10px 32px;
+  }
+  .btn-download {
+    background: #27ae60;
+    color: #fff;
+  }
+  #fileName {
+    font-size: 13px;
+    color: #27ae60;
+    font-weight: 500;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #status {
+    font-size: 13px;
+    color: #888;
+    margin: 8px 0 0 0;
+    min-height: 20px;
+  }
+  textarea {
+    width: 100%;
+    height: 440px;
+    border: 1px solid #d0d0d0;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    resize: none;
+    background: #fff;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  textarea:focus { border-color: #b0b0b0; }
+  .bottom-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+</style>
 </head>
 <body>
-<h1>NETSIM 网表生成器</h1>
-<p>导入INPUT.ATN文件，生成网表</p>
+<div class="container">
+  <h1>NETSIM 网表生成器在线版</h1>
+  <p class="subtitle">导入 *.ATN 文件，生成网表</p>
 
-<div style="margin-bottom:15px;">
-<input type="file" id="fileInput" accept=".ATN,.atn">
-<button type="button" id="btnLoad">导入文件</button>
-<button type="button" id="btnClear">清空</button>
-<span id="fileName" style="margin-left:10px;color:green;font-weight:bold;"></span>
-</div>
+  <div class="top-bar">
+    <div class="file-btn-wrap">
+      <button class="btn btn-load">选择 ATN 文件</button>
+      <input type="file" id="fileInput" accept=".ATN,.atn">
+    </div>
+    <button class="btn btn-clear" id="btnClear">清空</button>
+    <button class="btn btn-generate" id="btnGenerate">生成网表</button>
+    <button class="btn btn-download" id="btnDownload">下载网表</button>
+    <span id="fileName"></span>
+  </div>
 
-<div style="max-width:800px;">
-<textarea id="output" style="width:100%;height:420px;font-family:monospace;" readonly placeholder="网表输出将显示在这里"></textarea>
-<br>
-<button type="button" id="btnDownload">下载网表文件</button>
-<p id="status"></p>
-<button type="button" id="btnGenerate" style="background:#4a90d9;color:white;padding:12px 30px;border:none;margin-top:10px;">生成网表</button>
+  <textarea id="output" readonly placeholder="网表输出将显示在这里"></textarea>
+  <p id="status"></p>
 </div>
 
 <script>
-// ============================================================
-//  API 配置 — 部署 CF Workers 后替换为你的实际 API 地址
-// ============================================================
-// 格式: https://netsim-core-api.<你的CF子域名>.workers.dev/api/parse
-// 示例: https://netsim-core-api.henry.workers.dev/api/parse
 var API_BASE = 'https://netsim-core-api.hjdeng.workers.dev';
-// ============================================================
 
-document.getElementById('btnLoad').onclick = function() {
-  var file = document.getElementById('fileInput').files[0];
-  if (!file) { alert('请选择文件'); return; }
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
   var reader = new FileReader();
-  reader.onload = function(e) {
-    // 暂存 ATN 文本，等待生成网表时一起发送
-    window._currentATN = e.target.result;
-    document.getElementById('fileName').innerText = '已导入: ' + file.name;
+  reader.onload = function(ev) {
+    window._currentATN = ev.target.result;
+    document.getElementById('fileName').innerText = file.name;
     document.getElementById('status').innerText = '已就绪，请点击"生成网表"';
   };
   reader.readAsText(file);
-};
+});
 
-document.getElementById('btnClear').onclick = function() {
+document.getElementById('btnClear').addEventListener('click', function() {
   document.getElementById('fileInput').value = '';
   document.getElementById('fileName').innerText = '';
   document.getElementById('output').value = '';
   document.getElementById('status').innerText = '';
   window._currentATN = '';
-};
+});
 
-document.getElementById('btnGenerate').onclick = async function() {
+document.getElementById('btnGenerate').addEventListener('click', async function() {
   var atn = window._currentATN;
   if (!atn) { alert('请先导入 ATN 文件'); return; }
+  var btn = this;
+  btn.disabled = true;
   document.getElementById('status').innerText = '正在解析中...';
-  document.getElementById('btnGenerate').disabled = true;
   try {
     var res = await fetch(API_BASE + '/api/parse', {
       method: 'POST',
@@ -69,31 +175,26 @@ document.getElementById('btnGenerate').onclick = async function() {
       document.getElementById('status').innerText = '解析错误: ' + data.error;
     } else {
       document.getElementById('output').value = data.netlist;
-      document.getElementById('status').innerText = '网表生成完成! (' + data.stats.chars + ' chars, ' + data.stats.lines + ' lines)';
+      document.getElementById('status').innerText = '网表生成完成 (' + data.stats.chars + ' chars, ' + data.stats.lines + ' lines)';
     }
   } catch (err) {
     document.getElementById('status').innerText = '网络错误: ' + err.message;
   } finally {
-    document.getElementById('btnGenerate').disabled = false;
+    btn.disabled = false;
   }
-};
+});
 
-document.getElementById('btnDownload').onclick = function() {
+document.getElementById('btnDownload').addEventListener('click', function() {
   var text = document.getElementById('output').value;
   if (!text) { alert('请先生成网表!'); return; }
-  var inputFile = document.getElementById('fileName').innerText.replace('已导入: ', '');
-  var fileName;
-  if (inputFile) {
-    fileName = inputFile.replace(/\.ATN$/i, '.sp');
-  } else {
-    fileName = 'netlist.sp';
-  }
+  var fileName = document.getElementById('fileName').innerText;
+  fileName = fileName ? fileName.replace(/\.ATN$/i, '.sp') : 'netlist.sp';
   var blob = new Blob([text], { type: 'text/plain' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = fileName;
   a.click();
-};
+});
 </script>
 </body>
 </html>
