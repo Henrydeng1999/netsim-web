@@ -239,7 +239,7 @@ var _currentATN = '';
 var _currentFileName = '';
 
 // ============================================================
-// Usage Logging System (client-side, same as beta)
+// Usage Logging System (localStorage + KV server-side)
 // ============================================================
 var _LOG_STORAGE_KEY = 'netsim_usage_log';
 var _usageLog = loadUsageLog();   // restore from localStorage, or empty array
@@ -418,6 +418,16 @@ function recordUsage(action, extraInfo) {
   };
   _usageLog.push(entry);
   saveUsageLog();
+
+  // 同步写入 KV 服务端（fire-and-forget）
+  try {
+    fetch(API_BASE + '/api/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entry: entry })
+    }).catch(function() { /* ignore network errors */ });
+  } catch(e) { /* ignore */ }
+
   return entry;
 }
 
@@ -499,9 +509,28 @@ function dismissSplash() {
 (function initVisitorCounter() {
   var counterEl = document.getElementById('splashCounter');
   if (!counterEl) return;
-  var visits = parseInt(localStorage.getItem('_netsim_visits') || '0', 10) + 1;
-  localStorage.setItem('_netsim_visits', String(visits));
-  counterEl.textContent = 'Visitors: ' + visits.toLocaleString();
+
+  // 优先从 KV 获取服务端计数
+  fetch(API_BASE + '/api/visit')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.success && data.count > 0) {
+        counterEl.textContent = 'Visitors: ' + data.count.toLocaleString();
+      } else {
+        // KV 不可用时降级到 localStorage
+        fallbackLocalCount(counterEl);
+      }
+    })
+    .catch(function() {
+      // 网络错误时降级到 localStorage
+      fallbackLocalCount(counterEl);
+    });
+
+  function fallbackLocalCount(el) {
+    var visits = parseInt(localStorage.getItem('_netsim_visits') || '0', 10) + 1;
+    localStorage.setItem('_netsim_visits', String(visits));
+    el.textContent = 'Visitors: ' + visits.toLocaleString();
+  }
 })();
 
 document.addEventListener('keydown', function(e) {
@@ -727,17 +756,95 @@ document.getElementById('btnChk').onclick = async function() {
   updateLogStatus();
 };
 
-// Download log (password protected)
+// Download log (password protected) — merge server-side KV + local
 document.getElementById('btnLog').onclick = function() {
   if (!isVerified('log')) return;
-  var logText = exportUsageLog();
-  if (!logText) { alert('No usage records yet!'); return; }
   showLogPasswordDialog(function() {
-    var now = new Date();
-    var y=now.getFullYear(),m=('0'+(now.getMonth()+1)).slice(-2),d=('0'+now.getDate()).slice(-2);
-    downloadBlob(logText, 'netsim_usage_log_' + y+m+d + '.txt');
+    // 先尝试从服务端拉取日志
+    fetch(API_BASE + '/api/log?password=' + encodeURIComponent(_LOG_PASSWORD))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var logText;
+        if (data && data.success && data.log && data.log.length > 0) {
+          // 合并服务端日志 + 本地日志
+          var merged = mergeLogs(data.log, _usageLog);
+          logText = formatLogOutput(merged, data.totalEntries);
+        } else {
+          // 服务端无数据或请求失败，用本地日志
+          logText = exportUsageLog();
+        }
+        if (!logText) { alert('No usage records yet!'); return; }
+        var now = new Date();
+        var y=now.getFullYear(),m=('0'+(now.getMonth()+1)).slice(-2),d=('0'+now.getDate()).slice(-2);
+        downloadBlob(logText, 'netsim_usage_log_' + y+m+d + '.txt');
+      })
+      .catch(function() {
+        // 网络错误时用本地日志
+        var logText = exportUsageLog();
+        if (!logText) { alert('No usage records yet!'); return; }
+        var now = new Date();
+        var y=now.getFullYear(),m=('0'+(now.getMonth()+1)).slice(-2),d=('0'+now.getDate()).slice(-2);
+        downloadBlob(logText, 'netsim_usage_log_' + y+m+d + '.txt');
+      });
   });
 };
+
+// 合并服务端和本地日志（去重，按时间排序）
+function mergeLogs(serverLog, localLog) {
+  var all = [];
+  var seen = {};
+  function addLog(log) {
+    for (var i = 0; i < log.length; i++) {
+      var e = log[i];
+      // 用 timestamp + action + inputFile 作为去重 key
+      var key = (e.timestamp || '') + '|' + (e.action || '') + '|' + (e.inputFile || '');
+      if (!seen[key]) {
+        seen[key] = true;
+        all.push(e);
+      }
+    }
+  }
+  addLog(serverLog);
+  addLog(localLog);
+  // 按时间排序
+  all.sort(function(a, b) {
+    return (a.timestamp || '') < (b.timestamp || '') ? -1 :
+           (a.timestamp || '') > (b.timestamp || '') ? 1 : 0;
+  });
+  return all;
+}
+
+// 格式化合并后的日志输出
+function formatLogOutput(entries, serverTotal) {
+  if (entries.length === 0) return null;
+  var lines = [];
+  lines.push('========================================');
+  lines.push('  ecNetSim Netlist Generator - Usage Log');
+  lines.push('  Generated: ' + formatTimestamp(new Date()));
+  lines.push('  Total entries: ' + entries.length + ' (server: ' + serverTotal + ')');
+  lines.push('========================================\n');
+
+  lines.push('#\tTime\t\t\tUser\t\tCountry\t\tIP Addr\t\tAction\t\t\tFile');
+  lines.push('--\t----\t\t\t-----\t\t-------\t\t-------\t\t------\t\t\t----');
+
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i];
+    var idx = ('0' + (i + 1)).slice(-2);
+    lines.push(
+      idx + '\t' +
+      (e.timestamp || '') + '\t' +
+      padRight(e.userName || '(not set)', 12) + '\t' +
+      padRight(e.country || '(not set)', 10) + '\t' +
+      padRight(e.ip || '', 15) + '\t' +
+      padRight(e.action || '', 20) + '\t' +
+      (e.inputFile || '')
+    );
+  }
+  lines.push('\n========================================');
+  lines.push('  End of log');
+  lines.push('========================================');
+  return lines.join('\n');
+}
 
 // Password verification
 var _LOG_PASSWORD = 'dzx2dhj';
