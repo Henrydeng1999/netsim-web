@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ecNetSim Netlist Generator</title>
+<title>ecNetSimWeb Netlist Generator</title>
 <style>
 body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 20px auto; max-width: 900px; padding: 0 15px; }
 h1 { color: #333; font-size: 22px; margin-bottom: 4px; text-align:center; }
@@ -68,7 +68,7 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
   transition:border-color .25s;
 }
 .user-section input:focus { border-color:#4a90d9; box-shadow:0 0 0 3px rgba(74,144,217,.15); }
-#ipStatus { font-size:12px;color:#999;margin-top:8px;text-align:center;display:block; }
+#ipStatus, #apiStatus { font-size:12px;color:#999;margin-top:8px;text-align:center;display:block; }
 
 /* Button row */
 .btn-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center; margin-bottom:12px; }
@@ -148,7 +148,7 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 <div id="splashScreen">
 
   <div id="splashContent">
-    <div class="splash-title">ecNetSim V6.6beta (Web version under test)</div>
+    <div class="splash-title">ecNetSimWeb V7.0 (under test)</div>
     <div class="splash-subtitle">(for WINXP,7,8,10,11 / macOS / Linux / Mobile)</div>
     <br>
     <div class="splash-copyright">Copyright registration No. 2023SR0994276</div>
@@ -178,7 +178,7 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 <!-- ========== Main UI (visible after splash) ========== -->
 <div id="mainUI">
 
-<h1>ecNetSim Netlist Generator</h1>
+<h1>ecNetSimWeb Netlist Generator</h1>
 <p class="subtitle">Select an ATN file to auto-generate LTspice netlist for electrochemical simulation</p>
 
 <!-- User info (simplified: name only) -->
@@ -187,6 +187,7 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
   <input type="text" id="userNameInput" placeholder="Enter your name for usage logging"
          autocomplete="name" spellcheck="false">
   <div id="ipStatus">&#127760; IP: Detecting...</div>
+  <div id="apiStatus">&#9881; API: Detecting...</div>
 </div>
 
 <!-- File operation -->
@@ -234,9 +235,93 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 </div><!-- end mainUI -->
 
 <script>
-var API_BASE = 'https://netsim-core-api.hjdeng.workers.dev';
+// API 配置
+var API_BASE_CLOUD = 'https://netsim-core-api.hjdeng.workers.dev';
+var API_BASE_LOCAL = 'http://localhost:8787';
+var API_BASE = API_BASE_CLOUD;  // 默认使用云端
+var _apiMode = 'cloud';          // cloud / local / local-core
+
 var _currentATN = '';
 var _currentFileName = '';
+
+// 更新 API 状态显示
+function updateAPIStatus(mode, apiUrl) {
+  var el = document.getElementById('apiStatus');
+  if (!el) return;
+  var icons = { 'local-core': '&#9889;', 'local': '&#128259;', 'cloud': '&#9729;' };
+  var labels = { 'local-core': 'Local Core', 'local': 'Local API', 'cloud': 'Cloud API' };
+  var colors = { 'local-core': '#28a745', 'local': '#f0ad4e', 'cloud': '#5bc0de' };
+  el.innerHTML = icons[mode] + ' ' + labels[mode];
+  el.style.color = colors[mode];
+}
+
+(function autoDetectAPI() {
+  var loc = window.location;
+  console.log('[NETSIM] Page loaded from:', loc.href);
+
+  // 判断是否在本地环境运行：
+  // 1. file:// 协议直接打开
+  // 2. localhost 或 127.0.0.1 域名
+  var isLocalHost = /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(loc.href);
+  console.log('[NETSIM] isLocalHost:', isLocalHost);
+
+  // 检查本地核心算法是否可用（函数已加载）
+  var hasLocalCore = typeof parseATN === 'function' && typeof generateNetlist === 'function';
+  console.log('[NETSIM] hasLocalCore:', hasLocalCore);
+
+  if (isLocalHost) {
+    // 本地环境：优先使用本地核心算法
+    if (hasLocalCore) {
+      _apiMode = 'local-core';
+      API_BASE = '[Local Core]';
+      updateAPIStatus('local-core', 'Core loaded');
+      console.log('[NETSIM] Running in LOCAL-CORE mode (no API needed)');
+    } else {
+      // 核心算法不可用，尝试连接本地 API
+      console.log('[NETSIM] Testing local API:', API_BASE_LOCAL);
+      testAndSetAPI(API_BASE_LOCAL, 'local', function(success) {
+        if (success) {
+          updateAPIStatus('local');
+          console.log('[NETSIM] Running in LOCAL mode');
+        } else {
+          API_BASE = API_BASE_CLOUD;
+          _apiMode = 'cloud';
+          updateAPIStatus('cloud');
+          console.log('[NETSIM] Local API unreachable, falling back to CLOUD mode');
+        }
+      });
+    }
+  } else {
+    // 云端环境直接使用云端 API
+    updateAPIStatus('cloud');
+    console.log('[NETSIM] Running in CLOUD mode');
+  }
+})();
+
+/**
+ * 尝试连接指定 API，成功则设为当前 API
+ * @param {string} url - 要测试的 API 地址
+ * @param {string} mode - 'local' 或 'cloud'
+ * @param {function} callback - 回调函数，参数为是否成功
+ */
+function testAndSetAPI(url, mode, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url + '/api/health', true);
+  xhr.timeout = 2000;  // 2秒超时
+
+  xhr.onload = function() {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      API_BASE = url;
+      _apiMode = mode;
+      callback(true, url);
+    } else {
+      callback(false);
+    }
+  };
+  xhr.onerror = function() { callback(false); };
+  xhr.ontimeout = function() { callback(false); };
+  xhr.send();
+}
 
 // ============================================================
 // Usage Logging System (localStorage + KV server-side)
@@ -871,6 +956,8 @@ function updateLogStatus(){
   var count=getUsageLogCount(), el=document.getElementById('logStatus');
   el.innerText=count>0?'('+count+' operations recorded)':'';
 }
+
+// ============================================================
 </script>
   <footer style="text-align:center;padding:24px 0 16px;font-size:12px;color:#aaa; border-top:1px solid #eee; margin-top:40px;">
     Powered by <a href="https://www.cloudflare.com/" target="_blank" style="color:#f6821e;">Cloudflare</a> &mdash;
