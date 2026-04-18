@@ -843,7 +843,11 @@ document.getElementById('btnLog').onclick = function() {
   if (!isVerified('log')) return;
   showLogPasswordDialog(function() {
     // 先尝试从服务端拉取日志
-    fetch(API_BASE + '/api/log?password=' + encodeURIComponent(_logPwd))
+    fetch(API_BASE + '/api/log/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: _logPwd })
+    })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var logText;
