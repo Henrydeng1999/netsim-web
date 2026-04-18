@@ -843,7 +843,7 @@ document.getElementById('btnLog').onclick = function() {
   if (!isVerified('log')) return;
   showLogPasswordDialog(function() {
     // 先尝试从服务端拉取日志
-    fetch(API_BASE + '/api/log?password=' + encodeURIComponent(_LOG_PASSWORD))
+    fetch(API_BASE + '/api/log?password=' + encodeURIComponent(_logPwd))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var logText;
@@ -928,16 +928,28 @@ function formatLogOutput(entries, serverTotal) {
   return lines.join('\n');
 }
 
-// Password verification
-var _LOG_PASSWORD = 'dzx2dhj';
+// Password verification (密码在后端环境变量，前端只传递用户输入)
+var _logPwd = '';  // 临时存储密码（验证成功后用于下载）
 function showLogPasswordDialog(onSuccess) {
   var overlay=document.getElementById('logPasswordOverlay'), input=document.getElementById('logPasswordInput');
   var msg=document.getElementById('logPasswordMsg');
   input.value=''; input.classList.remove('invalid'); msg.innerHTML='';
   overlay.style.display='flex'; input.focus();
   function check() {
-    if(input.value.trim()===_LOG_PASSWORD){ hideLogPasswordDialog(); onSuccess(); }
-    else{ input.classList.add('invalid'); msg.innerHTML='<span style="color:#dc3545;">\u274C Incorrect password!</span>'; input.value=''; input.focus(); }
+    var pwd = input.value.trim();
+    if (!pwd) { msg.innerHTML='<span style="color:#dc3545;">\u26A0 Please enter password!</span>'; return; }
+    // 发送到后端验证密码
+    fetch(API_BASE + '/api/log/verify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ password: pwd })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) { _logPwd = pwd; hideLogPasswordDialog(); onSuccess(); }
+      else { input.classList.add('invalid'); msg.innerHTML='<span style="color:#dc3545;">\u274C Incorrect password!</span>'; input.value=''; input.focus(); }
+    })
+    .catch(function(){ input.classList.add('invalid'); msg.innerHTML='<span style="color:#dc3545;">\u274C Network error!</span>'; });
   }
   document.getElementById('logPwdOk').onclick=check;
   document.getElementById('logPwdCancel').onclick=function(){ hideLogPasswordDialog(); };
