@@ -1063,7 +1063,8 @@ document.getElementById('btnDownload').onclick = function() {
   _outputSaved = true;
   _originalOutput = text;
   _lastSavedOutput = text;
-  updateSaveButtons();
+  // 禁用自己，不调用 updateSaveButtons() 避免影响其他按钮
+  this.disabled = true;
 };
 
 // Download chk (via API)
