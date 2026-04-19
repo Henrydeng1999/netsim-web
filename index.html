@@ -855,7 +855,20 @@ document.getElementById('fileInput').onchange = function() {
   
   var reader = new FileReader();
   reader.onload = function(e) {
-    _currentATN = e.target.result;
+    var atnContent = e.target.result;
+    
+    // 检查是否缺少 [Netlist: xxx] 行，如果在 [Do you want to run...] 前补上
+    if (!/[Netlist:\s*(net|cir|sp)]/i.test(atnContent)) {
+      var simPromptLine = '[Do you want to run the simulation immediately(Y/N)?(no period)]';
+      var promptIndex = atnContent.lastIndexOf(simPromptLine);
+      if (promptIndex !== -1) {
+        atnContent = atnContent.substring(0, promptIndex) + 
+                     '[Netlist: sp]\n' + 
+                     atnContent.substring(promptIndex);
+      }
+    }
+    
+    _currentATN = atnContent;
     _currentFileName = file.name;
     document.getElementById('fileName').innerText = 'Imported: ' + file.name;
     document.getElementById('inputEditor').value = _currentATN;
@@ -1300,6 +1313,19 @@ document.getElementById('btnLoadFromNetlist').onclick = function() {
         }
         
         var atnContent = atnLines.join('\n');
+        
+        // 检查是否缺少 [Netlist: xxx] 行，如果在 [Do you want to run...] 前补上
+        if (!/[Netlist:\s*(net|cir|sp)]/i.test(atnContent)) {
+          var simPromptLine = '[Do you want to run the simulation immediately(Y/N)?(no period)]';
+          var promptIndex = atnContent.lastIndexOf(simPromptLine);
+          if (promptIndex !== -1) {
+            // 在该行之前插入 [Netlist: sp]
+            atnContent = atnContent.substring(0, promptIndex) + 
+                         '[Netlist: sp]\n' + 
+                         atnContent.substring(promptIndex);
+          }
+        }
+        
         document.getElementById('inputEditor').value = atnContent;
         _currentATN = atnContent;
         _currentFileName = file.name.replace(/\.[^.]+$/, '');
