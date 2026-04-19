@@ -1410,9 +1410,8 @@ document.getElementById('btnSaveATN').onclick = async function() {
       downloadBlob(atnContent, defaultName);
     }
     
-    // 保存后：立即禁用自己，更新状态变量
+    // 保存后：只禁用自己，不更新 _originalInput（保存没有改变输入）
     this.disabled = true;
-    _originalInput = atnContent;
     _inputLoaded = false;  // 保存后清除加载标记
   } catch (err) {
     if (err.name !== 'AbortError') {
