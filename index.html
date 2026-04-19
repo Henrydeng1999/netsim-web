@@ -979,22 +979,13 @@ async function doAutoGenerate(inputFileName) {
       }
     }
     // 版本号在保存时递增，不在生成时递增
-    // 标记输出已生成
+    // 标记输出已生成，刷新后启用输出保存按钮
     _outputGenerated = true;
-    // 比较新输出与上次保存的输出，只有变化才启用保存按钮
-    var newOutput = data.netlist || '';
-    if (_lastSavedOutput === '') {
-      // 首次生成，启用保存按钮
-      _originalOutput = '';
-    } else if (newOutput !== _lastSavedOutput) {
-      // 与上次保存的输出不同，启用保存按钮
-      _originalOutput = '';
-    } else {
-      // 与上次保存的输出相同，保持禁用
-      _originalOutput = newOutput;
-    }
+    _originalOutput = '';
     _needsRefresh = false;  // 刷新后不需要再次刷新
-    updateSaveButtons();
+    // 直接启用输出保存按钮
+    var btnDownload = document.getElementById('btnDownload');
+    if (btnDownload) btnDownload.disabled = false;
   } catch (err) {
     document.getElementById('output').value = 'Error:\n' + err.message;
     document.getElementById('status').innerText = '\u26D4\uFE0F Network error: ' + err.message;
@@ -1004,7 +995,9 @@ async function doAutoGenerate(inputFileName) {
     _originalOutput = '';  // 重置原始输出
     _lastSavedOutput = '';  // 重置上次保存的输出
     _needsRefresh = false;  // 刷新后不需要再次刷新
-    updateSaveButtons();
+    // 直接启用输出保存按钮
+    var btnDownload = document.getElementById('btnDownload');
+    if (btnDownload) btnDownload.disabled = false;
   }
   
   recordUsage('generate_netlist', { fileName: inputFileName });
@@ -1280,18 +1273,11 @@ function updateFromEditor() {
           document.getElementById('status').innerText = '✅ Netlist generated successfully!';
           document.getElementById('status').style.color = 'green';
         }
-        // 比较新输出与上次保存的输出，只有变化才启用保存按钮
-        var newOutput = document.getElementById('output').value;
-        if (_lastSavedOutput === '') {
-          // 首次生成，启用保存按钮
-          _originalOutput = '';
-        } else if (newOutput !== _lastSavedOutput) {
-          // 与上次保存的输出不同，启用保存按钮
-          _originalOutput = '';
-        } else {
-          // 与上次保存的输出相同，保持禁用
-          _originalOutput = newOutput;
-        }
+        // 刷新后启用输出保存按钮，让用户决定是否保存
+        _originalOutput = '';
+        // 直接启用保存按钮，不等待 updateSaveButtons
+        var btnDownload = document.getElementById('btnDownload');
+        if (btnDownload) btnDownload.disabled = false;
         finalizeOutputUpdate();
       }
     }
@@ -1304,7 +1290,9 @@ function updateFromEditor() {
     _originalOutput = '';  // 重置原始输出
     _lastSavedOutput = '';  // 重置上次保存的输出
     _needsRefresh = false;  // 刷新后不需要再次刷新
-    updateSaveButtons();
+    // 直接启用输出保存按钮
+    var btnDownload = document.getElementById('btnDownload');
+    if (btnDownload) btnDownload.disabled = false;
   });
 }
 
