@@ -453,7 +453,7 @@ function loadDefaultFile() {
       _currentFileName = defaultFile;
       document.getElementById('fileName').innerText = 'Imported: ' + defaultFile;
       document.getElementById('inputEditor').value = _currentATN;
-      doAutoGenerate(defaultFile);
+      // 不调用 doAutoGenerate，保持输出框空白
     })
     .catch(function(err) {
       // 静默失败，不影响页面加载
