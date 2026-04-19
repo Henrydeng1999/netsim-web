@@ -1246,7 +1246,7 @@ function updateFromEditor() {
     function finalizeOutputUpdate() {
       _outputGenerated = true;
       _needsRefresh = false;
-      updateSaveButtons();
+      // 不调用 updateSaveButtons()，避免刷新影响保存按钮状态
     }
     
     if (data.error) {
