@@ -1311,9 +1311,9 @@ function updateFromEditor() {
 // Preview button
 document.getElementById('btnPreview').onclick = function() {
   if (!isVerified('preview')) return;
-  // 点击刷新后：输入没变，所以刷新按钮禁用；保存按钮保持原状态
+  // 立即禁用刷新按钮（不依赖 updateSaveButtons，避免影响保存按钮）
+  this.disabled = true;
   _originalInput = document.getElementById('inputEditor').value;
-  // 不调用 updateSaveButtons()，避免影响保存按钮状态
   updateFromEditor();
 };
 
@@ -1410,11 +1410,10 @@ document.getElementById('btnSaveATN').onclick = async function() {
       downloadBlob(atnContent, defaultName);
     }
     
-    // 保存后更新原始内容，按钮会禁用直到再次修改
+    // 保存后：立即禁用自己，更新状态变量
+    this.disabled = true;
     _originalInput = atnContent;
     _inputLoaded = false;  // 保存后清除加载标记
-    _needsRefresh = true;  // 保存输入后需要刷新输出
-    updateSaveButtons();
   } catch (err) {
     if (err.name !== 'AbortError') {
       alert('Save failed: ' + err.message);
