@@ -415,10 +415,44 @@ function updateSaveButtons() {
   if (btnPreview) btnPreview.disabled = false;
 }
 
-// 页面加载完成后初始化保存按钮状态
+// 页面加载完成后初始化保存按钮状态，并自动加载默认文件
 document.addEventListener('DOMContentLoaded', function() {
   updateSaveButtons();
+  // 自动加载默认的 ee.atn 示例文件
+  loadDefaultFile();
 });
+
+// 自动加载默认 ATN 文件
+function loadDefaultFile() {
+  var defaultFile = 'ee.atn';
+  fetch(defaultFile)
+    .then(function(response) {
+      if (!response.ok) throw new Error('File not found');
+      return response.text();
+    })
+    .then(function(atnContent) {
+      // 如果原始文件没有 [Netlist: net/cir/sp]，则在 [Do you want to run...] 前插入
+      if (!/\bNetlist:\s*net\/cir\/sp\b/i.test(atnContent)) {
+        var lines = atnContent.split(/\r?\n/);
+        var newLines = [];
+        for (var i = 0; i < lines.length; i++) {
+          if (lines[i].indexOf('Do you want to run') !== -1) {
+            newLines.push('[Netlist: net/cir/sp]');
+          }
+          newLines.push(lines[i]);
+        }
+        atnContent = newLines.join('\n');
+      }
+      _currentATN = atnContent;
+      _currentFileName = defaultFile;
+      document.getElementById('fileName').innerText = 'Imported: ' + defaultFile;
+      document.getElementById('inputEditor').value = _currentATN;
+      doAutoGenerate(defaultFile);
+    })
+    .catch(function(err) {
+      console.log('Default file not loaded: ' + err.message);
+    });
+}
 
 // 更新 API 状态显示
 function updateAPIStatus(mode, apiUrl) {
