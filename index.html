@@ -386,15 +386,7 @@ var _apiMode = 'cloud';          // cloud / local / local-core
 
 var _currentATN = '';
 var _currentFileName = '';
-var _savedNetlistFormat = 'sp';  // 保存用户选择的 netlist 格式
-// 初始化状态
-var _originalInput = '';  // 原始输入内容（用于判断是否有修改）
-var _originalOutput = '';  // 原始输出内容（用于判断是否有修改）
-var _lastSavedOutput = '';  // 上次保存的输出内容
-var _outputGenerated = false;  // 标记输出是否已生成
-var _needsRefresh = false;  // 是否需要刷新输出
-var _outputSaved = false;  // 标记输出是否已保存（用于按钮状态）
-var _inputLoaded = false;  // 标记输入是否从 netlist 提取（用于保存按钮状态）
+var _savedNetlistFormat = 'sp';
 
 // 更新按钮状态 - 三个按钮始终保持激活
 function updateSaveButtons() {
@@ -849,15 +841,7 @@ document.getElementById('fileInput').onchange = function() {
     _currentATN = e.target.result;
     _currentFileName = file.name;
     document.getElementById('fileName').innerText = 'Imported: ' + file.name;
-    _originalOutput = '';
-    _lastSavedOutput = '';
-    _outputGenerated = false;
-    _needsRefresh = false;
-    _outputSaved = false;
-    _inputLoaded = false;  // 本地已有原文件，无需激活保存按钮
     document.getElementById('inputEditor').value = _currentATN;
-    _originalInput = document.getElementById('inputEditor').value;
-    updateSaveButtons();
     doAutoGenerate(file.name);
   };
   reader.readAsText(file);
@@ -964,19 +948,11 @@ async function doAutoGenerate(inputFileName) {
         document.getElementById('status').style.color = 'green';
       }
     }
-    // 标记输出已生成
-    _outputGenerated = true;
-    _originalOutput = '';
-    _needsRefresh = false;
     updateSaveButtons();
   } catch (err) {
     document.getElementById('output').value = 'Error:\n' + err.message;
     document.getElementById('status').innerText = '\u26D4\uFE0F Network error: ' + err.message;
     document.getElementById('status').style.color = 'red';
-    _outputGenerated = true;
-    _originalOutput = '';
-    _lastSavedOutput = '';
-    _needsRefresh = false;
     updateSaveButtons();
   }
   
@@ -989,13 +965,6 @@ async function doAutoGenerate(inputFileName) {
 function doClear() {
   document.getElementById('output').value = '';
   document.getElementById('inputEditor').value = '';
-  _originalInput = '';  // 重置原始输入
-  _originalOutput = '';  // 重置原始输出
-  _lastSavedOutput = '';  // 重置上次保存的输出
-  _outputGenerated = false;  // 重置输出生成标记
-  _needsRefresh = false;  // 重置刷新标记
-  _outputSaved = false;  // 重置输出保存状态
-  _inputLoaded = false;  // 重置加载标记
   var errEl = document.getElementById('errorInOutput');
   if (errEl) { errEl.innerHTML = ''; errEl.style.display = 'none'; }
   var fnEl = document.getElementById('fileName');
@@ -1009,7 +978,7 @@ function doClear() {
   _currentATN = '';
   _currentFileName = '';
   _savedNetlistFormat = 'sp';
-  updateSaveButtons();  // 更新按钮状态
+  updateSaveButtons();
 }
 document.getElementById('btnClear').onclick = doClear;
 
@@ -1040,9 +1009,6 @@ document.getElementById('btnDownload').onclick = function() {
   }
   
   downloadBlob(finalContent, fileName);
-  _outputSaved = true;
-  _originalOutput = text;
-  _lastSavedOutput = text;
 };
 
 // Download chk (via API)
@@ -1214,19 +1180,10 @@ function updateFromEditor() {
   })
   .then(function(res) { return res.json(); })
   .then(function(data) {
-    // 统一的输出更新和状态重置逻辑
-    function finalizeOutputUpdate() {
-      _outputGenerated = true;
-      _needsRefresh = false;
-    }
-    
     if (data.error) {
       document.getElementById('output').value = 'Error:\n' + data.error;
       document.getElementById('status').innerText = '❌ Error: ' + data.error;
       document.getElementById('status').style.color = 'red';
-      // 重置原始输出以启用保存按钮
-      _originalOutput = '';
-      finalizeOutputUpdate();
     } else {
       var errors = data.errors || [];
       var hasFatal = errors.some(function(e) { return e.type === 'fatal'; });
@@ -1237,9 +1194,6 @@ function updateFromEditor() {
         document.getElementById('output').value = '❌ Parse Errors:\n\n' + errMsgs;
         document.getElementById('status').innerText = '❌ Netlist generation failed';
         document.getElementById('status').style.color = 'red';
-        // 重置原始输出以启用保存按钮
-        _originalOutput = '';
-        finalizeOutputUpdate();
       } else {
         document.getElementById('output').value = data.netlist || '';
         _savedNetlistFormat = data.netlistFormat || 'sp';
@@ -1251,20 +1205,14 @@ function updateFromEditor() {
           document.getElementById('status').innerText = '✅ Netlist generated successfully!';
           document.getElementById('status').style.color = 'green';
         }
-        _originalOutput = '';
-        updateSaveButtons();
-        finalizeOutputUpdate();
       }
     }
+    updateSaveButtons();
   })
   .catch(function(err) {
     document.getElementById('output').value = 'Network error:\n' + err.message;
     document.getElementById('status').innerText = '❌ Network error';
     document.getElementById('status').style.color = 'red';
-    _outputGenerated = true;
-    _originalOutput = '';
-    _lastSavedOutput = '';
-    _needsRefresh = false;
     updateSaveButtons();
   });
 }
@@ -1319,18 +1267,9 @@ document.getElementById('btnLoadFromNetlist').onclick = function() {
         
         var atnContent = atnLines.join('\n');
         document.getElementById('inputEditor').value = atnContent;
-        // 与标准 ATN 文件加载后的状态完全一致
         _currentATN = atnContent;
-        _currentFileName = file.name.replace(/\.[^.]+$/, '');  // 去掉扩展名
-        _originalOutput = '';
-        _lastSavedOutput = '';
-        _outputGenerated = false;
-        _needsRefresh = false;
-        _outputSaved = false;
-        _originalInput = document.getElementById('inputEditor').value;  // 刷新按钮保持禁用
-        _inputLoaded = true;  // 从 netlist 提取，需要激活保存按钮
-        updateSaveButtons();
-        doAutoGenerate(_currentFileName);  // 自动生成 netlist
+        _currentFileName = file.name.replace(/\.[^.]+$/, '');
+        doAutoGenerate(_currentFileName);
       }
     };
     reader.readAsText(file);
@@ -1367,9 +1306,6 @@ document.getElementById('btnSaveATN').onclick = async function() {
       // 降级：使用传统下载方式
       downloadBlob(atnContent, defaultName);
     }
-    
-    // 保存后只清除加载标记，按钮保持激活
-    _inputLoaded = false;  // 保存后清除加载标记
   } catch (err) {
     if (err.name !== 'AbortError') {
       alert('Save failed: ' + err.message);
