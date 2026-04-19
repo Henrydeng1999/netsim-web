@@ -5,9 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ecNetSimWeb Netlist Generator</title>
 <style>
-body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 20px auto; max-width: 900px; padding: 0 15px; }
-h1 { color: #333; font-size: 22px; margin-bottom: 4px; text-align:center; }
-p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
+body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 15px auto; padding: 0 15px; max-width: 900px; font-size: 14px; }
+h1 { 
+  font-size: 22px; 
+  margin-bottom: 4px; 
+  text-align: center; 
+  font-weight: bold; 
+  color: #1a5faa;
+  letter-spacing: 1px;
+}
+p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px; }
 
 /* ====== Splash Screen (QBasic Print + Color style) ====== */
 #splashScreen {
@@ -54,30 +61,34 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 /* ========== User Info Section (Simplified) ========== */
 .user-section {
   background:linear-gradient(135deg, #f0f4f8 0%, #e8eef3 100%);
-  padding:10px 20px; border-radius:12px;
-  border:2px solid #d0dae5; margin-bottom:10px;
-  text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+  padding:8px 16px; border-radius:10px;
+  border:2px solid #d0dae5; margin-bottom:8px;
+  text-align:center; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .user-section .user-label {
   font-size:13px; font-weight:bold; color:#2c3e50; margin-bottom:0;
   display:inline-block;
 }
 .user-section input[type=text] {
-  max-width:280px; padding:6px 12px;
+  max-width:180px; padding:5px 10px;
   font-size:13px; border:2px solid #ccc; border-radius:6px; outline:none;
   transition:border-color .25s;
 }
 .user-section input:focus { border-color:#4a90d9; box-shadow:0 0 0 3px rgba(74,144,217,.15); }
-#ipStatus, #apiStatus { font-size:12px;color:#999;margin-top:8px;text-align:center;display:block; }
+#ipStatus, #apiStatus { font-size:12px;color:#999;margin-top:4px;text-align:center;display:block; }
 
 /* Button row */
-.btn-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center; margin-bottom:12px; }
+.btn-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center; margin-bottom:8px; max-width:900px; margin-left:auto; margin-right:auto; }
 .btn-row button {
-  padding:9px 18px; border:none; border-radius:6px; cursor:pointer;
-  font-size:14px; white-space:nowrap;
+  padding:7px 14px; border:none; border-radius:6px; cursor:pointer;
+  font-size:13px; white-space:nowrap;
 }
 .btn-primary { background:#4a90d9; color:white; }
 .btn-primary:hover { background:#3a7bc8; }
+.btn-primary:disabled { background:#ccc; cursor:not-allowed; }
 .btn-green { background:#28a745; color:white; }
 .btn-green:hover { background:#218838; }
 .btn-gray { background:#6c757d; color:white; }
@@ -86,16 +97,99 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 .btn-dark:hover { background:#333; }
 
 /* File select area */
-.file-select-row { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
-.file-select-row input[type=file] { max-width:280px; font-size:14px; }
-#fileName { color:green; font-weight:normal; font-size:14px; }
+.file-select-row { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:8px; max-width:900px; margin-left:auto; margin-right:auto; }
+.file-select-row input[type=file] { max-width:240px; font-size:13px; }
+#fileName { color:green; font-weight:normal; font-size:13px; }
+
+/* ========== Left-Right Split Layout ========== */
+.split-wrapper {
+  position: relative;
+  max-width: 900px;
+  margin: 8px auto;
+}
+.split-container {
+  display: flex;
+  gap: 36px;
+  height: 420px;
+}
+.split-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.split-panel-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.split-panel-label {
+  font-weight: bold;
+  color: #333;
+  font-size: 13px;
+}
+.split-panel textarea {
+  flex: 1;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: none;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+.split-panel textarea:focus {
+  outline: none;
+  border-color: #aaa;
+  box-shadow: 0 0 0 2px rgba(170,170,170,0.3);
+}
+#inputEditor {
+  background: #f8f9fa;
+}
+#output {
+  background: #fff;
+}
+
+/* Center arrow button between panels */
+#btnPreview {
+  position: absolute;
+  left: 50%;
+  top: 26%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(74,144,217,0.4);
+  transition: all 0.2s;
+  z-index: 10;
+}
+#btnPreview:hover {
+  background: #3a7bc8;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+#btnPreview:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+#btnPreview:disabled:hover {
+  background: #ccc;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Input editor section (original - hidden) */
+.editor-section {
+  display: none;
+}
 
 /* Output area */
-#output {
-  width:100%; height:380px; font-family:monospace; font-size:13px;
-  padding:10px; border:1px solid #ccc; border-radius:6px;
-  resize:vertical; box-sizing:border-box;
-}
+/* (已统一到 .split-panel textarea) */
 
 /* Pinned error display */
 #errorInOutput {
@@ -113,9 +207,9 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 }
 #errorInOutput .eio-item { padding:2px 0; }
 
-.status-bar { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:8px; }
-#status { font-weight:bold; font-size:14px; }
-#logStatus { font-size:13px; color:#666; }
+.status-bar { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:6px; max-width:900px; margin-left:auto; margin-right:auto; }
+#status { font-weight:bold; font-size:13px; }
+#logStatus { font-size:12px; color:#666; }
 
 
 
@@ -140,6 +234,36 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 #logPasswordInput.invalid { border-color:#dc3545; background:#fff5f5; }
 #logPasswordMsg { font-size:13px; min-height:20px; margin-top:8px; }
 #logPasswordActions { display:flex; gap:8px; margin-top:16px; justify-content:center; }
+
+/* Input Editor Section */
+#inputEditor { resize: vertical; min-height: 100px; }
+
+/* Interpretation Table */
+#interpretationTable table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#interpretationTable th {
+  background: #e9ecef;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+}
+#interpretationTable td {
+  padding: 4px 8px;
+  border-top: 1px solid #eee;
+  vertical-align: top;
+}
+#interpretationTable tr:nth-child(even) { background: #fafafa; }
+#interpretationTable tr:hover { background: #f0f7ff; }
+.line-num { color: #888; width: 40px; text-align: right; padding-right: 8px !important; }
+.line-content { font-family: monospace; white-space: pre-wrap; word-break: break-all; }
+.line-type { color: #0066cc; font-weight: bold; width: 120px; }
+.line-value { color: #333; }
+.line-error { color: #dc3545; }
 </style>
 </head>
 <body>
@@ -192,25 +316,39 @@ p.subtitle { color:#666; margin:-4px 0 14px; text-align:center; }
 
 <!-- File operation -->
 <div class="file-select-row">
-  <input type="file" id="fileInput" accept=".ATN,.atn">
+  <input type="file" id="fileInput" accept=".atn">
   <button type="button" id="btnClear" class="btn-gray">Clear</button>
+  <button type="button" id="btnChk" class="btn-dark">&#128203; Check File (.chk)</button>
+  <button type="button" id="btnLog" class="btn-dark">&#128203; Usage Log</button>
   <span id="fileName"></span>
+  <span id="logStatus" style="font-size:11px;color:#666;"></span>
 </div>
 
-<!-- Action buttons -->
-<div style="text-align:center; margin-bottom:8px;">
-  <button type="button" id="btnDownload" style="font-size:16px;font-weight:bold;padding:12px 36px;background:#4a90d9;color:white;border:none;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(74,144,217,.35);transition:background .2s;">&#128190; Download Netlist (.sp)</button>
-</div>
-<div class="btn-row">
-  <button type="button" id="btnChk" class="btn-dark">&#128203; Download Check File (.chk)</button>
-  <button type="button" id="btnLog" class="btn-dark">&#128203; Download Usage Log</button>
-  <span id="logStatus"></span>
-</div>
-
-<!-- Output area -->
-<div style="position:relative;">
-  <div id="errorInOutput"></div>
-  <textarea id="output" readonly placeholder="Enter your name, then select an ATN file..."></textarea>
+<!-- Left-Right Split Layout -->
+<div class="split-wrapper">
+  <div class="split-container">
+    <!-- Left Panel: ATN Input -->
+    <div class="split-panel">
+      <div class="split-panel-header">
+        <span class="split-panel-label">&#128221; ATN Input</span>
+        <button type="button" id="btnLoadFromNetlist" class="btn-secondary" style="padding: 3px 10px; font-size: 11px; margin-left: 8px;" title="Load input from netlist file">&#128194; Load from netlist file</button>
+        <button type="button" id="btnSaveATN" class="btn-primary" style="padding: 3px 10px; font-size: 11px; margin-left: 4px;">&#128190; Save</button>
+      </div>
+      <textarea id="inputEditor" placeholder="Select an ATN file or paste ATN content here..." spellcheck="false"></textarea>
+    </div>
+    
+    <!-- Right Panel: Netlist Output -->
+    <div class="split-panel">
+      <div class="split-panel-header">
+        <span class="split-panel-label">&#128196; Netlist Output</span><button type="button" id="btnDownload" class="btn-primary" style="padding: 3px 10px; font-size: 11px; margin-left: 8px;">&#128190; Save</button>
+      </div>
+      <div id="errorInOutput"></div>
+      <textarea id="output" readonly placeholder="Output will appear here..." spellcheck="false"></textarea>
+    </div>
+  </div>
+  
+  <!-- Center Preview Arrow Button -->
+  <button type="button" id="btnPreview" title="Preview / Generate">&#10145;</button>
 </div>
 <div class="status-bar">
   <span id="status"></span>
@@ -241,8 +379,51 @@ var API_BASE_LOCAL = 'http://localhost:8787';
 var API_BASE = API_BASE_CLOUD;  // 默认使用云端
 var _apiMode = 'cloud';          // cloud / local / local-core
 
+
+
+
+
+
 var _currentATN = '';
 var _currentFileName = '';
+var _savedNetlistFormat = 'sp';  // 保存用户选择的 netlist 格式
+// 初始化状态
+var _originalInput = '';  // 原始输入内容（用于判断是否有修改）
+var _originalOutput = '';  // 原始输出内容（用于判断是否有修改）
+var _lastSavedOutput = '';  // 上次保存的输出内容
+var _outputGenerated = false;  // 标记输出是否已生成
+var _needsRefresh = false;  // 是否需要刷新输出
+var _outputSaved = false;  // 标记输出是否已保存（用于按钮状态）
+var _inputLoaded = false;  // 标记输入是否刚从文件加载（用于保存按钮状态）
+
+// 更新保存按钮状态
+function updateSaveButtons() {
+  var inputEl = document.getElementById('inputEditor');
+  var outputEl = document.getElementById('output');
+  var btnSave = document.getElementById('btnSaveATN');
+  var btnDownload = document.getElementById('btnDownload');
+  var btnPreview = document.getElementById('btnPreview');
+  if (!inputEl || !outputEl || !btnSave || !btnDownload) return;
+  
+  // 输入按钮：有修改 或 刚从文件加载就启用
+  var inputChanged = inputEl.value !== _originalInput;
+  btnSave.disabled = !(inputChanged || _inputLoaded);
+  
+  // 输出按钮：有输出且未保存时才启用
+  var hasOutput = _outputGenerated && outputEl.value.trim().length > 0;
+  var outputChanged = outputEl.value !== _originalOutput;
+  btnDownload.disabled = !(hasOutput && outputChanged);
+  
+  // 预览按钮：输入有修改 或 需要刷新时才启用
+  if (btnPreview) {
+    btnPreview.disabled = !(inputChanged || _needsRefresh);
+  }
+}
+
+// 页面加载完成后初始化保存按钮状态
+document.addEventListener('DOMContentLoaded', function() {
+  updateSaveButtons();
+});
 
 // 更新 API 状态显示
 function updateAPIStatus(mode, apiUrl) {
@@ -666,19 +847,39 @@ setInterval(updateIPStatusDisplay, 2500);
 // ============================================================
 // File Select -> Auto Generate Netlist (via API)
 // ============================================================
+// 在文件对话框弹出前清空界面
+document.getElementById('fileInput').addEventListener('click', function() {
+  doClear();
+}, true);  // 使用捕获阶段确保在对话框弹出前执行
+
 document.getElementById('fileInput').onchange = function() {
   if (!isVerified('import')) { this.value=''; return; }
   var file = this.files[0];
   if (!file) return;
+  
   var reader = new FileReader();
   reader.onload = function(e) {
     _currentATN = e.target.result;
     _currentFileName = file.name;
     document.getElementById('fileName').innerText = 'Imported: ' + file.name;
+    _originalOutput = '';
+    _lastSavedOutput = '';
+    _outputGenerated = false;
+    _needsRefresh = false;
+    _outputSaved = false;
+    _inputLoaded = true;  // 标记为刚从文件加载，保存按钮保持启用
+    document.getElementById('inputEditor').value = _currentATN;
+    _originalInput = document.getElementById('inputEditor').value;
+    updateSaveButtons();
     doAutoGenerate(file.name);
   };
   reader.readAsText(file);
 };
+
+// 监听输入框变化
+document.getElementById('inputEditor').addEventListener('input', function() {
+  updateSaveButtons();
+});
 
 // Display validation errors in output area
 function showErrorsInOutput(errors) {
@@ -751,6 +952,8 @@ async function doAutoGenerate(inputFileName) {
       document.getElementById('status').style.color = 'red';
     } else {
       document.getElementById('output').value = data.netlist || '';
+      // 保存 netlist 格式
+      _savedNetlistFormat = data.netlistFormat || 'sp';
 
       var errors = data.errors || [];
       if (errors.length > 0) {
@@ -769,19 +972,51 @@ async function doAutoGenerate(inputFileName) {
         document.getElementById('status').style.color = 'green';
       }
     }
+    // 版本号在保存时递增，不在生成时递增
+    // 标记输出已生成
+    _outputGenerated = true;
+    // 比较新输出与上次保存的输出，只有变化才启用保存按钮
+    var newOutput = data.netlist || '';
+    if (_lastSavedOutput === '') {
+      // 首次生成，启用保存按钮
+      _originalOutput = '';
+    } else if (newOutput !== _lastSavedOutput) {
+      // 与上次保存的输出不同，启用保存按钮
+      _originalOutput = '';
+    } else {
+      // 与上次保存的输出相同，保持禁用
+      _originalOutput = newOutput;
+    }
+    _needsRefresh = false;  // 刷新后不需要再次刷新
+    updateSaveButtons();
   } catch (err) {
     document.getElementById('output').value = 'Error:\n' + err.message;
     document.getElementById('status').innerText = '\u26D4\uFE0F Network error: ' + err.message;
     document.getElementById('status').style.color = 'red';
+    // 网络错误也标记为已生成
+    _outputGenerated = true;
+    _originalOutput = '';  // 重置原始输出
+    _lastSavedOutput = '';  // 重置上次保存的输出
+    _needsRefresh = false;  // 刷新后不需要再次刷新
+    updateSaveButtons();
   }
-
+  
   recordUsage('generate_netlist', { fileName: inputFileName });
   updateLogStatus();
 }
 
 // Clear output
-document.getElementById('btnClear').onclick = function() {
+// Clear 按钮功能
+function doClear() {
   document.getElementById('output').value = '';
+  document.getElementById('inputEditor').value = '';
+  _originalInput = '';  // 重置原始输入
+  _originalOutput = '';  // 重置原始输出
+  _lastSavedOutput = '';  // 重置上次保存的输出
+  _outputGenerated = false;  // 重置输出生成标记
+  _needsRefresh = false;  // 重置刷新标记
+  _outputSaved = false;  // 重置输出保存状态
+  _inputLoaded = false;  // 重置加载标记
   var errEl = document.getElementById('errorInOutput');
   if (errEl) { errEl.innerHTML = ''; errEl.style.display = 'none'; }
   var fnEl = document.getElementById('fileName');
@@ -794,17 +1029,42 @@ document.getElementById('btnClear').onclick = function() {
   document.getElementById('status').style.color = '';
   _currentATN = '';
   _currentFileName = '';
-};
+  _savedNetlistFormat = 'sp';
+  updateSaveButtons();  // 更新按钮状态
+}
+document.getElementById('btnClear').onclick = doClear;
 
 // Download netlist
 document.getElementById('btnDownload').onclick = function() {
   if (!isVerified('download')) return;
   var text = document.getElementById('output').value;
-  if (!text) { alert('Please import an ATN file first!'); return; }
-  var inputFile = document.getElementById('fileName').innerText.replace('Imported: ', '');
-  var baseName = inputFile.replace(/\.[^.]+$/, '');
-  var fileName = baseName ? (baseName + '.sp') : 'netlist.sp';
-  downloadBlob(text, fileName);
+  if (!text) { alert('No output to save!'); return; }
+  
+  var ext = _savedNetlistFormat || 'sp';
+  var baseName = _currentFileName 
+    ? _currentFileName.replace(/\.[^.]+$/, '') 
+    : 'netlist';
+  var fileName = baseName + '.' + ext;
+  
+  // 直接保存到下载目录
+  // 追加输入源信息（用分隔符和星号注释）
+  var inputContent = document.getElementById('inputEditor').value;
+  var finalContent = text;
+  if (inputContent && inputContent.trim()) {
+    var separator = '\n\n* ============================================================\n';
+    separator += '* INPUT SOURCE (for reference, not part of netlist)\n';
+    separator += '* ============================================================\n';
+    var commentedInput = inputContent.split('\n').map(function(line) {
+      return '* ' + line;
+    }).join('\n');
+    finalContent = text + separator + commentedInput;
+  }
+  
+  downloadBlob(finalContent, fileName);
+  _outputSaved = true;
+  _originalOutput = text;
+  _lastSavedOutput = text;
+  updateSaveButtons();
 };
 
 // Download chk (via API)
@@ -823,9 +1083,8 @@ document.getElementById('btnChk').onclick = async function() {
     if (data.error) {
       alert('Check file generation failed: ' + data.error);
     } else if (data.chk) {
-      var inputFile = document.getElementById('fileName').innerText.replace('Imported: ', '');
-      var baseName = inputFile.replace(/\.[^.]+$/, '');
-      var chkName = baseName ? (baseName + '.chk') : 'input.chk';
+      var baseName = _currentFileName || 'input';
+      var chkName = baseName + '.chk';
       downloadBlob(data.chk, chkName);
     } else {
       alert('No check file content returned');
@@ -961,6 +1220,193 @@ function showLogPasswordDialog(onSuccess) {
 }
 function hideLogPasswordDialog(){ document.getElementById('logPasswordOverlay').style.display='none'; }
 
+// Update netlist from editor via API
+function updateFromEditor() {
+  var atn = document.getElementById('inputEditor').value;
+  if (!atn.trim()) {
+    return;
+  }
+  _currentATN = atn;
+  
+  // 通过 API 调用生成 netlist
+  fetch(API_BASE + '/api/parse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ atn: atn })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    // 统一的输出更新和状态重置逻辑
+    function finalizeOutputUpdate() {
+      _outputGenerated = true;
+      _needsRefresh = false;
+      updateSaveButtons();
+    }
+    
+    if (data.error) {
+      document.getElementById('output').value = 'Error:\n' + data.error;
+      document.getElementById('status').innerText = '❌ Error: ' + data.error;
+      document.getElementById('status').style.color = 'red';
+      // 重置原始输出以启用保存按钮
+      _originalOutput = '';
+      finalizeOutputUpdate();
+    } else {
+      var errors = data.errors || [];
+      var hasFatal = errors.some(function(e) { return e.type === 'fatal'; });
+      
+      // 如果有 fatal error，不显示 netlist，只显示错误
+      if (hasFatal) {
+        var errMsgs = errors.map(function(e) { return e.header + ' ' + e.message; }).join('\n');
+        document.getElementById('output').value = '❌ Parse Errors:\n\n' + errMsgs;
+        document.getElementById('status').innerText = '❌ Netlist generation failed';
+        document.getElementById('status').style.color = 'red';
+        // 重置原始输出以启用保存按钮
+        _originalOutput = '';
+        finalizeOutputUpdate();
+      } else {
+        document.getElementById('output').value = data.netlist || '';
+        _savedNetlistFormat = data.netlistFormat || 'sp';
+        
+        if (errors.length > 0) {
+          document.getElementById('status').innerText = '⚠️ Netlist generated (with warnings)';
+          document.getElementById('status').style.color = 'orange';
+        } else {
+          document.getElementById('status').innerText = '✅ Netlist generated successfully!';
+          document.getElementById('status').style.color = 'green';
+        }
+        // 比较新输出与上次保存的输出，只有变化才启用保存按钮
+        var newOutput = document.getElementById('output').value;
+        if (_lastSavedOutput === '') {
+          // 首次生成，启用保存按钮
+          _originalOutput = '';
+        } else if (newOutput !== _lastSavedOutput) {
+          // 与上次保存的输出不同，启用保存按钮
+          _originalOutput = '';
+        } else {
+          // 与上次保存的输出相同，保持禁用
+          _originalOutput = newOutput;
+        }
+        finalizeOutputUpdate();
+      }
+    }
+  })
+  .catch(function(err) {
+    document.getElementById('output').value = 'Network error:\n' + err.message;
+    document.getElementById('status').innerText = '❌ Network error';
+    document.getElementById('status').style.color = 'red';
+    _outputGenerated = true;
+    _originalOutput = '';  // 重置原始输出
+    _lastSavedOutput = '';  // 重置上次保存的输出
+    _needsRefresh = false;  // 刷新后不需要再次刷新
+    updateSaveButtons();
+  });
+}
+
+// Preview button
+document.getElementById('btnPreview').onclick = updateFromEditor;
+
+// Load input from netlist file button
+document.getElementById('btnLoadFromNetlist').onclick = function() {
+  // 先执行 Clear 功能（在弹出文件对话框之前）
+  doClear();
+  
+  // 创建隐藏的文件输入框
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.net,.cir,.sp';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    
+    var reader = new FileReader();
+    reader.onload = function(event) {
+      var content = event.target.result;
+      // 查找 INPUT SOURCE 标记
+      var marker = '* INPUT SOURCE';
+      var markerIndex = content.lastIndexOf(marker);
+      
+      if (markerIndex === -1) {
+        // 没有找到 INPUT SOURCE，保持清空状态
+      } else {
+        // 提取标记后的内容
+        var afterMarker = content.substring(markerIndex);
+        var lines = afterMarker.split('\n');
+        var atnLines = [];
+        
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          // 跳过标记行和分隔线
+          if (line.indexOf('* INPUT SOURCE') !== -1) continue;
+          if (line.match(/^\s*\*[\s=]*$/)) continue;
+          
+          // 去掉行首的 * 和空格，只去掉注释符，保留其他所有内容
+          var cleanLine = line.replace(/^\s*\*\s*/, '');
+          atnLines.push(cleanLine);
+        }
+        
+        var atnContent = atnLines.join('\n');
+        document.getElementById('inputEditor').value = atnContent;
+        // 与标准 ATN 文件加载后的状态完全一致
+        _currentATN = atnContent;
+        _currentFileName = file.name.replace(/\.[^.]+$/, '');  // 去掉扩展名
+        _originalOutput = '';
+        _lastSavedOutput = '';
+        _outputGenerated = false;
+        _needsRefresh = false;
+        _outputSaved = false;
+        _originalInput = document.getElementById('inputEditor').value;  // 与标准加载一致，刷新按钮保持禁用
+        _inputLoaded = true;  // 标记为刚从文件加载，保存按钮保持启用
+        updateSaveButtons();
+        doAutoGenerate(_currentFileName);  // 自动生成 netlist
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
+// Save ATN button - save modified input file to user-selected location
+document.getElementById('btnSaveATN').onclick = async function() {
+  var atnContent = document.getElementById('inputEditor').value;
+  if (!atnContent.trim()) {
+    alert('No ATN content to save!');
+    return;
+  }
+  
+  var defaultName = _currentFileName 
+    ? _currentFileName.replace(/\.[^.]+$/, '') + '.atn' 
+    : 'input.atn';
+  
+  try {
+    // 使用 File System Access API 让用户选择保存位置
+    if (window.showSaveFilePicker) {
+      var handle = await window.showSaveFilePicker({
+        suggestedName: defaultName,
+        types: [{
+          description: 'ATN Input Files',
+          accept: { 'chemical/x-atn': ['.atn'] }
+        }]
+      });
+      var writable = await handle.createWritable();
+      await writable.write(atnContent);
+      await writable.close();
+    } else {
+      // 降级：使用传统下载方式
+      downloadBlob(atnContent, defaultName);
+    }
+    
+    // 保存后更新原始内容，按钮会禁用直到再次修改
+    _originalInput = atnContent;
+    _inputLoaded = false;  // 保存后清除加载标记
+    _needsRefresh = true;  // 保存输入后需要刷新输出
+    updateSaveButtons();
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      alert('Save failed: ' + err.message);
+    }
+  }
+};
+
 // Generic download helper
 function downloadBlob(content, fileName){
   var blob=new Blob([content],{type:'text/plain;charset=utf-8'}), a=document.createElement('a');
@@ -975,7 +1421,7 @@ function updateLogStatus(){
 
 // ============================================================
 </script>
-  <footer style="text-align:center;padding:24px 0 16px;font-size:12px;color:#aaa; border-top:1px solid #eee; margin-top:40px;">
+  <footer style="text-align:center;padding:16px 0 10px;font-size:12px;color:#aaa; border-top:1px solid #eee; margin-top:16px;">
     Powered by <a href="https://www.cloudflare.com/" target="_blank" style="color:#f6821e;">Cloudflare</a> &mdash;
     Network acceleration by <a href="https://developers.cloudflare.com/warp-client/get-started/" target="_blank" style="color:#f6821e;">Cloudflare WARP</a> &mdash;
     Special thanks to Cloudflare for their free infrastructure
