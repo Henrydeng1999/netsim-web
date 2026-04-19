@@ -422,8 +422,14 @@ document.addEventListener('DOMContentLoaded', function() {
   loadDefaultFile();
 });
 
-// 自动加载默认 ATN 文件
+// 自动加载默认 ATN 文件（仅在已输入姓名时）
 function loadDefaultFile() {
+  // 检查是否已输入姓名，未输入则跳过自动加载
+  var nameInput = document.getElementById('userNameInput');
+  if (!nameInput || !nameInput.value.trim()) {
+    return;  // 未输入姓名，静默跳过
+  }
+  
   var defaultFile = 'ee.atn';
   fetch(defaultFile)
     .then(function(response) {
@@ -450,6 +456,7 @@ function loadDefaultFile() {
       doAutoGenerate(defaultFile);
     })
     .catch(function(err) {
+      // 静默失败，不影响页面加载
       console.log('Default file not loaded: ' + err.message);
     });
 }
