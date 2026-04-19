@@ -396,28 +396,14 @@ var _needsRefresh = false;  // 是否需要刷新输出
 var _outputSaved = false;  // 标记输出是否已保存（用于按钮状态）
 var _inputLoaded = false;  // 标记输入是否从 netlist 提取（用于保存按钮状态）
 
-// 更新保存按钮状态
+// 更新按钮状态 - 三个按钮始终保持激活
 function updateSaveButtons() {
-  var inputEl = document.getElementById('inputEditor');
-  var outputEl = document.getElementById('output');
   var btnSave = document.getElementById('btnSaveATN');
   var btnDownload = document.getElementById('btnDownload');
   var btnPreview = document.getElementById('btnPreview');
-  if (!inputEl || !outputEl || !btnSave || !btnDownload) return;
-  
-  // 输入按钮：有修改 或 从 netlist 提取的就启用
-  var inputChanged = inputEl.value !== _originalInput;
-  btnSave.disabled = !(inputChanged || _inputLoaded);
-  
-  // 输出按钮：有输出且未保存时才启用
-  var hasOutput = _outputGenerated && outputEl.value.trim().length > 0;
-  var outputChanged = outputEl.value !== _originalOutput;
-  btnDownload.disabled = !(hasOutput && outputChanged);
-  
-  // 预览按钮：只有输入有修改时才启用，点击后禁用
-  if (btnPreview) {
-    btnPreview.disabled = !inputChanged;
-  }
+  if (btnSave) btnSave.disabled = false;
+  if (btnDownload) btnDownload.disabled = false;
+  if (btnPreview) btnPreview.disabled = false;
 }
 
 // 页面加载完成后初始化保存按钮状态
@@ -882,12 +868,9 @@ document.getElementById('inputEditor').addEventListener('input', function() {
   updateSaveButtons();
 });
 
-// 监听输出框变化（用户可能手动编辑输出），只启用输出保存按钮
+// 监听输出框变化
 document.getElementById('output').addEventListener('input', function() {
-  var btnDownload = document.getElementById('btnDownload');
-  if (btnDownload && _outputGenerated) {
-    btnDownload.disabled = false;
-  }
+  updateSaveButtons();
 });
 
 // Display validation errors in output area
@@ -981,26 +964,20 @@ async function doAutoGenerate(inputFileName) {
         document.getElementById('status').style.color = 'green';
       }
     }
-    // 版本号在保存时递增，不在生成时递增
-    // 标记输出已生成，刷新后启用输出保存按钮
+    // 标记输出已生成
     _outputGenerated = true;
     _originalOutput = '';
-    _needsRefresh = false;  // 刷新后不需要再次刷新
-    // 直接启用输出保存按钮
-    var btnDownload = document.getElementById('btnDownload');
-    if (btnDownload) btnDownload.disabled = false;
+    _needsRefresh = false;
+    updateSaveButtons();
   } catch (err) {
     document.getElementById('output').value = 'Error:\n' + err.message;
     document.getElementById('status').innerText = '\u26D4\uFE0F Network error: ' + err.message;
     document.getElementById('status').style.color = 'red';
-    // 网络错误也标记为已生成
     _outputGenerated = true;
-    _originalOutput = '';  // 重置原始输出
-    _lastSavedOutput = '';  // 重置上次保存的输出
-    _needsRefresh = false;  // 刷新后不需要再次刷新
-    // 直接启用输出保存按钮
-    var btnDownload = document.getElementById('btnDownload');
-    if (btnDownload) btnDownload.disabled = false;
+    _originalOutput = '';
+    _lastSavedOutput = '';
+    _needsRefresh = false;
+    updateSaveButtons();
   }
   
   recordUsage('generate_netlist', { fileName: inputFileName });
@@ -1066,8 +1043,6 @@ document.getElementById('btnDownload').onclick = function() {
   _outputSaved = true;
   _originalOutput = text;
   _lastSavedOutput = text;
-  // 禁用自己，不调用 updateSaveButtons() 避免影响其他按钮
-  this.disabled = true;
 };
 
 // Download chk (via API)
@@ -1243,7 +1218,6 @@ function updateFromEditor() {
     function finalizeOutputUpdate() {
       _outputGenerated = true;
       _needsRefresh = false;
-      // 不调用 updateSaveButtons()，避免刷新影响保存按钮状态
     }
     
     if (data.error) {
@@ -1277,11 +1251,8 @@ function updateFromEditor() {
           document.getElementById('status').innerText = '✅ Netlist generated successfully!';
           document.getElementById('status').style.color = 'green';
         }
-        // 刷新后启用输出保存按钮，让用户决定是否保存
         _originalOutput = '';
-        // 直接启用保存按钮，不等待 updateSaveButtons
-        var btnDownload = document.getElementById('btnDownload');
-        if (btnDownload) btnDownload.disabled = false;
+        updateSaveButtons();
         finalizeOutputUpdate();
       }
     }
@@ -1291,21 +1262,16 @@ function updateFromEditor() {
     document.getElementById('status').innerText = '❌ Network error';
     document.getElementById('status').style.color = 'red';
     _outputGenerated = true;
-    _originalOutput = '';  // 重置原始输出
-    _lastSavedOutput = '';  // 重置上次保存的输出
-    _needsRefresh = false;  // 刷新后不需要再次刷新
-    // 直接启用输出保存按钮
-    var btnDownload = document.getElementById('btnDownload');
-    if (btnDownload) btnDownload.disabled = false;
+    _originalOutput = '';
+    _lastSavedOutput = '';
+    _needsRefresh = false;
+    updateSaveButtons();
   });
 }
 
 // Preview button
 document.getElementById('btnPreview').onclick = function() {
   if (!isVerified('preview')) return;
-  // 立即禁用刷新按钮（不依赖 updateSaveButtons，避免影响保存按钮）
-  this.disabled = true;
-  _originalInput = document.getElementById('inputEditor').value;
   updateFromEditor();
 };
 
@@ -1402,8 +1368,7 @@ document.getElementById('btnSaveATN').onclick = async function() {
       downloadBlob(atnContent, defaultName);
     }
     
-    // 保存后：只禁用自己，不更新 _originalInput（保存没有改变输入）
-    this.disabled = true;
+    // 保存后只清除加载标记，按钮保持激活
     _inputLoaded = false;  // 保存后清除加载标记
   } catch (err) {
     if (err.name !== 'AbortError') {
