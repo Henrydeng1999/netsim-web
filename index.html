@@ -1311,9 +1311,9 @@ function updateFromEditor() {
 // Preview button
 document.getElementById('btnPreview').onclick = function() {
   if (!isVerified('preview')) return;
-  // 点击刷新后立即更新原始输入，使刷新按钮禁用
+  // 点击刷新后：输入没变，所以刷新按钮禁用；保存按钮保持原状态
   _originalInput = document.getElementById('inputEditor').value;
-  updateSaveButtons();
+  // 不调用 updateSaveButtons()，避免影响保存按钮状态
   updateFromEditor();
 };
 
