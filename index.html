@@ -857,15 +857,18 @@ document.getElementById('fileInput').onchange = function() {
   reader.onload = function(e) {
     var atnContent = e.target.result;
     
-    // 检查是否缺少 [Netlist: xxx] 行，如果在 [Do you want to run...] 前补上
-    if (!/[Netlist:\s*(net|cir|sp)]/i.test(atnContent)) {
-      var simPromptLine = '[Do you want to run the simulation immediately(Y/N)?(no period)]';
-      var promptIndex = atnContent.lastIndexOf(simPromptLine);
-      if (promptIndex !== -1) {
-        atnContent = atnContent.substring(0, promptIndex) + 
-                     '[Netlist: sp]\n' + 
-                     atnContent.substring(promptIndex);
+    // 如果原始文件没有 [Netlist: net/cir/sp]，则在 [Do you want to run...] 前插入
+    if (!/\bNetlist:\s*net\/cir\/sp\b/i.test(atnContent)) {
+      var lines = atnContent.split(/\r?\n/);
+      var newLines = [];
+      for (var i = 0; i < lines.length; i++) {
+        // 在 [Do you want to run...] 前插入标准行
+        if (lines[i].indexOf('Do you want to run') !== -1) {
+          newLines.push('[Netlist: net/cir/sp]');
+        }
+        newLines.push(lines[i]);
       }
+      atnContent = newLines.join('\n');
     }
     
     _currentATN = atnContent;
@@ -1314,16 +1317,18 @@ document.getElementById('btnLoadFromNetlist').onclick = function() {
         
         var atnContent = atnLines.join('\n');
         
-        // 检查是否缺少 [Netlist: xxx] 行，如果在 [Do you want to run...] 前补上
-        if (!/[Netlist:\s*(net|cir|sp)]/i.test(atnContent)) {
-          var simPromptLine = '[Do you want to run the simulation immediately(Y/N)?(no period)]';
-          var promptIndex = atnContent.lastIndexOf(simPromptLine);
-          if (promptIndex !== -1) {
-            // 在该行之前插入 [Netlist: sp]
-            atnContent = atnContent.substring(0, promptIndex) + 
-                         '[Netlist: sp]\n' + 
-                         atnContent.substring(promptIndex);
+        // 如果原始内容没有 [Netlist: net/cir/sp]，则在 [Do you want to run...] 前插入
+        if (!/\bNetlist:\s*net\/cir\/sp\b/i.test(atnContent)) {
+          var lines = atnContent.split(/\r?\n/);
+          var newLines = [];
+          for (var i = 0; i < lines.length; i++) {
+            // 在 [Do you want to run...] 前插入标准行
+            if (lines[i].indexOf('Do you want to run') !== -1) {
+              newLines.push('[Netlist: net/cir/sp]');
+            }
+            newLines.push(lines[i]);
           }
+          atnContent = newLines.join('\n');
         }
         
         document.getElementById('inputEditor').value = atnContent;
