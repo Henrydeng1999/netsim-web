@@ -211,6 +211,22 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
 #status { font-weight:bold; font-size:13px; }
 #logStatus { font-size:12px; color:#666; }
 
+/* Loading spinner */
+#loadingSpinner {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid #4a90d9;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 
 
 /* Log password dialog */
@@ -351,6 +367,7 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
   <button type="button" id="btnPreview" title="Preview / Generate">&#10145;</button>
 </div>
 <div class="status-bar">
+  <span id="loadingSpinner"></span>
   <span id="status"></span>
 </div>
 
@@ -907,8 +924,10 @@ async function doAutoGenerate(inputFileName) {
   var atn = _currentATN;
   if (!atn) return;
 
-  document.getElementById('status').innerText = 'Generating netlist...';
-  document.getElementById('status').style.color = '';
+  // 显示加载动画
+  document.getElementById('loadingSpinner').style.display = 'inline-block';
+  document.getElementById('status').innerText = 'Generating...';
+  document.getElementById('status').style.color = '#4a90d9';
 
   // Clear old errors
   var errEl = document.getElementById('errorInOutput');
@@ -921,6 +940,9 @@ async function doAutoGenerate(inputFileName) {
       body: JSON.stringify({ atn: atn })
     });
     var data = await res.json();
+
+    // 隐藏加载动画
+    document.getElementById('loadingSpinner').style.display = 'none';
 
     if (data.error) {
       document.getElementById('output').value = 'Error:\n' + data.error;
@@ -950,6 +972,8 @@ async function doAutoGenerate(inputFileName) {
     }
     updateSaveButtons();
   } catch (err) {
+    // 隐藏加载动画
+    document.getElementById('loadingSpinner').style.display = 'none';
     document.getElementById('output').value = 'Error:\n' + err.message;
     document.getElementById('status').innerText = '\u26D4\uFE0F Network error: ' + err.message;
     document.getElementById('status').style.color = 'red';
@@ -1172,6 +1196,11 @@ function updateFromEditor() {
   }
   _currentATN = atn;
   
+  // 显示加载动画
+  document.getElementById('loadingSpinner').style.display = 'inline-block';
+  document.getElementById('status').innerText = 'Generating...';
+  document.getElementById('status').style.color = '#4a90d9';
+  
   // 通过 API 调用生成 netlist
   fetch(API_BASE + '/api/parse', {
     method: 'POST',
@@ -1180,6 +1209,9 @@ function updateFromEditor() {
   })
   .then(function(res) { return res.json(); })
   .then(function(data) {
+    // 隐藏加载动画
+    document.getElementById('loadingSpinner').style.display = 'none';
+    
     if (data.error) {
       document.getElementById('output').value = 'Error:\n' + data.error;
       document.getElementById('status').innerText = '❌ Error: ' + data.error;
@@ -1210,6 +1242,8 @@ function updateFromEditor() {
     updateSaveButtons();
   })
   .catch(function(err) {
+    // 隐藏加载动画
+    document.getElementById('loadingSpinner').style.display = 'none';
     document.getElementById('output').value = 'Network error:\n' + err.message;
     document.getElementById('status').innerText = '❌ Network error';
     document.getElementById('status').style.color = 'red';
