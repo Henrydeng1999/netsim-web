@@ -882,6 +882,11 @@ document.getElementById('inputEditor').addEventListener('input', function() {
   updateSaveButtons();
 });
 
+// 监听输出框变化（用户可能手动编辑输出）
+document.getElementById('output').addEventListener('input', function() {
+  updateSaveButtons();
+});
+
 // Display validation errors in output area
 function showErrorsInOutput(errors) {
   if (!errors || errors.length === 0) return;
