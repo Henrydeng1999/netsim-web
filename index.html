@@ -394,7 +394,7 @@ var _lastSavedOutput = '';  // 上次保存的输出内容
 var _outputGenerated = false;  // 标记输出是否已生成
 var _needsRefresh = false;  // 是否需要刷新输出
 var _outputSaved = false;  // 标记输出是否已保存（用于按钮状态）
-var _inputLoaded = false;  // 标记输入是否刚从文件加载（用于保存按钮状态）
+var _inputLoaded = false;  // 标记输入是否从 netlist 提取（用于保存按钮状态）
 
 // 更新保存按钮状态
 function updateSaveButtons() {
@@ -405,7 +405,7 @@ function updateSaveButtons() {
   var btnPreview = document.getElementById('btnPreview');
   if (!inputEl || !outputEl || !btnSave || !btnDownload) return;
   
-  // 输入按钮：有修改 或 刚从文件加载就启用
+  // 输入按钮：有修改 或 从 netlist 提取的就启用
   var inputChanged = inputEl.value !== _originalInput;
   btnSave.disabled = !(inputChanged || _inputLoaded);
   
@@ -868,7 +868,7 @@ document.getElementById('fileInput').onchange = function() {
     _outputGenerated = false;
     _needsRefresh = false;
     _outputSaved = false;
-    _inputLoaded = true;  // 标记为刚从文件加载，保存按钮保持启用
+    _inputLoaded = false;  // 本地已有原文件，无需激活保存按钮
     document.getElementById('inputEditor').value = _currentATN;
     _originalInput = document.getElementById('inputEditor').value;
     updateSaveButtons();
@@ -1369,8 +1369,8 @@ document.getElementById('btnLoadFromNetlist').onclick = function() {
         _outputGenerated = false;
         _needsRefresh = false;
         _outputSaved = false;
-        _originalInput = document.getElementById('inputEditor').value;  // 与标准加载一致，刷新按钮保持禁用
-        _inputLoaded = true;  // 标记为刚从文件加载，保存按钮保持启用
+        _originalInput = document.getElementById('inputEditor').value;  // 刷新按钮保持禁用
+        _inputLoaded = true;  // 从 netlist 提取，需要激活保存按钮
         updateSaveButtons();
         doAutoGenerate(_currentFileName);  // 自动生成 netlist
       }
