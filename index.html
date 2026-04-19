@@ -414,9 +414,9 @@ function updateSaveButtons() {
   var outputChanged = outputEl.value !== _originalOutput;
   btnDownload.disabled = !(hasOutput && outputChanged);
   
-  // 预览按钮：输入有修改 或 需要刷新时才启用
+  // 预览按钮：只有输入有修改时才启用，点击后禁用
   if (btnPreview) {
-    btnPreview.disabled = !(inputChanged || _needsRefresh);
+    btnPreview.disabled = !inputChanged;
   }
 }
 
@@ -1311,6 +1311,9 @@ function updateFromEditor() {
 // Preview button
 document.getElementById('btnPreview').onclick = function() {
   if (!isVerified('preview')) return;
+  // 点击刷新后立即更新原始输入，使刷新按钮禁用
+  _originalInput = document.getElementById('inputEditor').value;
+  updateSaveButtons();
   updateFromEditor();
 };
 
