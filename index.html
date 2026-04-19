@@ -814,6 +814,7 @@ function isVerified(action) {
     var actionLabel = action === 'download' ? 'Download'
       : action === 'chk' ? 'Check'
       : action === 'import' ? 'Import'
+      : action === 'preview' ? 'Preview'
       : action;
     var msg = '\u26A0\uFE0F Please enter your name first to use "' + actionLabel + '"!';
     document.getElementById('status').innerText = msg;
@@ -1303,7 +1304,10 @@ function updateFromEditor() {
 }
 
 // Preview button
-document.getElementById('btnPreview').onclick = updateFromEditor;
+document.getElementById('btnPreview').onclick = function() {
+  if (!isVerified('preview')) return;
+  updateFromEditor();
+};
 
 // Load input from netlist file button
 document.getElementById('btnLoadFromNetlist').onclick = function() {
