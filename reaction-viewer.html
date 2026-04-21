@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reaction Mechanism Viewer — ecNetSim</title>
+<title>Reaction Mechanism — ecNetSim</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -11,30 +11,63 @@ body {
   background: #0d1b2a;
   color: #e0e8f0;
   min-height: 100vh;
-  padding: 20px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
 }
 
-/* ── Top bar ── */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
 h1 {
-  font-size: 18px;
+  font-size: 16px;
   color: #66ccff;
   letter-spacing: 1px;
+  margin-bottom: 4px;
+  text-align: center;
 }
-.subtitle {
+.mech-label {
+  font-size: 13px;
+  color: #00ff88;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+#errorMsg {
+  color: #ff8888;
+  font-size: 14px;
+  text-align: center;
+  line-height: 2;
+  display: none;
+}
+
+#diagramWrap {
+  width: 100%;
+  max-width: 860px;
+}
+
+#flowSvg {
+  width: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* legend */
+.legend {
+  margin-top: 16px;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
   font-size: 11px;
   color: #557799;
-  margin-top: 2px;
 }
+.legend span { display: flex; align-items: center; gap: 6px; }
+
+/* back button */
 .back-btn {
-  padding: 7px 20px;
+  margin-top: 28px;
+  padding: 7px 24px;
   background: transparent;
   border: 1px solid #3388ff;
   color: #66ccff;
@@ -42,379 +75,139 @@ h1 {
   font-size: 12px;
   cursor: pointer;
   text-decoration: none;
-  white-space: nowrap;
 }
-.back-btn:hover { background: rgba(51,136,255,0.15); }
+.back-btn:hover { background: rgba(51,136,255,0.12); }
 
-/* ── Error ── */
-#errorMsg {
-  text-align: center;
-  color: #ff8888;
-  font-size: 14px;
-  margin-top: 80px;
-  display: none;
-  line-height: 1.8;
-}
-
-/* ── Main content ── */
-#mainContent { display: none; max-width: 900px; margin: 0 auto; }
-
-/* ── Mechanism badge ── */
-.mech-badge {
-  text-align: center;
-  margin-bottom: 24px;
-}
-.mech-tag {
-  display: inline-block;
-  background: rgba(0,255,136,0.12);
-  border: 1px solid #00ff88;
-  color: #00ff88;
-  border-radius: 20px;
-  padding: 6px 22px;
-  font-size: 14px;
-  font-weight: bold;
-  letter-spacing: 1.5px;
-}
-
-/* ── Summary cards ── */
-.summary-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-bottom: 28px;
-}
-.summary-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  padding: 14px 22px;
-  text-align: center;
-  min-width: 110px;
-}
-.summary-card .num { font-size: 26px; font-weight: bold; color: #00ff88; }
-.summary-card .lbl { font-size: 10px; color: #99aabb; margin-top: 4px; }
-
-/* ── Section ── */
-.section {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-.section-title {
-  font-size: 12px;
-  font-weight: bold;
-  color: #7799bb;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
-/* ── Flow diagram ── */
-#flowSvg {
-  width: 100%;
-  display: block;
-  overflow: visible;
-}
-
-/* Node tooltip */
-.node-tooltip {
+/* tooltip */
+.tip {
   position: fixed;
-  background: rgba(10,20,35,0.95);
-  border: 1px solid #66ccff;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 12px;
+  background: rgba(8,18,32,0.96);
+  border: 1px solid #336688;
+  border-radius: 7px;
+  padding: 7px 13px;
+  font-size: 11px;
   color: #cce8ff;
   pointer-events: none;
   z-index: 9999;
   display: none;
-  max-width: 220px;
-  line-height: 1.6;
-}
-
-/* ── Reaction cards ── */
-.rxn-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.rxn-card {
-  flex: 1 1 260px;
-  max-width: 420px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 10px;
-  padding: 14px 18px;
-  border: 1px solid rgba(102,204,255,0.15);
-}
-.rxn-card.echem { border-color: rgba(0,255,136,0.3); }
-.rxn-card.chem  { border-color: rgba(255,200,80,0.3); }
-.rxn-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 10px;
-  border-radius: 20px;
-  margin-bottom: 10px;
-  letter-spacing: 0.5px;
-}
-.badge-e { background: rgba(0,255,136,0.12); color: #00ff88; border: 1px solid #00ff88; }
-.badge-c { background: rgba(255,200,80,0.12); color: #ffcc44; border: 1px solid #ffcc44; }
-.rxn-eq {
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  color: #fff;
-  margin: 6px 0 12px;
-  line-height: 1.5;
-  word-break: break-all;
-}
-.rxn-eq .sp  { color: #66ccff; font-weight: bold; }
-.rxn-eq .el  { color: #00ff88; }
-.rxn-eq .arr { color: #aaa; margin: 0 5px; }
-.rxn-params {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.chip {
-  background: rgba(255,255,255,0.07);
-  border-radius: 5px;
-  padding: 3px 9px;
-  font-size: 11px;
-  color: #9bb;
-}
-.chip b { color: #ddf; font-weight: normal; }
-
-/* ── Species table ── */
-.sp-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.sp-table th {
-  background: rgba(255,255,255,0.07);
-  color: #88aacc;
-  padding: 8px 12px;
-  text-align: left;
-  font-weight: 600;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.sp-table td {
-  padding: 7px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  color: #ccd8e0;
-  vertical-align: top;
-}
-.sp-table tr:hover td { background: rgba(255,255,255,0.03); }
-.sp-badge {
-  display: inline-block;
-  width: 22px; height: 22px;
-  line-height: 22px;
-  text-align: center;
-  border-radius: 50%;
-  background: rgba(102,204,255,0.15);
-  color: #66ccff;
-  font-weight: bold;
-  font-size: 11px;
-  margin-right: 4px;
-}
-.role-e { color: #7dffbb; font-size: 11px; }
-.role-c { color: #ffcc66; font-size: 11px; }
-
-@media (max-width: 600px) {
-  .rxn-card { flex: 1 1 100%; max-width: 100%; }
-  h1 { font-size: 15px; }
+  line-height: 1.7;
+  max-width: 200px;
 }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div>
-    <h1>⚗️ Reaction Mechanism Viewer</h1>
-    <div class="subtitle">ecNetSim — parsed from ATN input</div>
-  </div>
-  <a class="back-btn" onclick="window.close()" href="javascript:void(0)">← Back to Simulator</a>
-</div>
+<h1>⚗️ Reaction Mechanism</h1>
+<div class="mech-label" id="mechLabel"></div>
 
 <div id="errorMsg">
-  ⚠️ No valid ATN data found.<br>
-  Please load an ATN file in the simulator first, then click <b>⚗ View Mechanism</b>.
+  ⚠️ No ATN data found.<br>
+  Please load an ATN file in the simulator first.
 </div>
 
-<div id="mainContent">
-  <div class="mech-badge"><span class="mech-tag" id="mechTag">— Mechanism —</span></div>
-
-  <!-- Summary cards -->
-  <div class="summary-row" id="summaryRow"></div>
-
-  <!-- Flow diagram -->
-  <div class="section" id="flowSection">
-    <div class="section-title">🔗 Reaction Flow Diagram</div>
-    <svg id="flowSvg"></svg>
-    <div style="margin-top:10px; font-size:11px; color:#446688; text-align:center;">
-      <span style="color:#00ff88">●</span> Electrochemical (E) &nbsp;&nbsp;
-      <span style="color:#ffcc44">●</span> Chemical (C) &nbsp;&nbsp;
-      Hover over nodes for details
-    </div>
-  </div>
-
-  <!-- Electron transfer reactions -->
-  <div class="section" id="eSection" style="display:none">
-    <div class="section-title">⚡ Electron Transfer Reactions (E)</div>
-    <div class="rxn-grid" id="eGrid"></div>
-  </div>
-
-  <!-- Chemical reactions -->
-  <div class="section" id="cSection" style="display:none">
-    <div class="section-title">🧪 Homogeneous Chemical Reactions (C)</div>
-    <div class="rxn-grid" id="cGrid"></div>
-  </div>
-
-  <!-- Species table -->
-  <div class="section">
-    <div class="section-title">📋 Species Overview</div>
-    <table class="sp-table">
-      <thead>
-        <tr>
-          <th>Species</th>
-          <th>Initial Conc. (mM)</th>
-          <th>Diffusion Coeff. (cm²/s)</th>
-          <th>Roles in Reactions</th>
-        </tr>
-      </thead>
-      <tbody id="spTbody"></tbody>
-    </table>
+<div id="diagramWrap" style="display:none">
+  <svg id="flowSvg"></svg>
+  <div class="legend">
+    <span>
+      <svg width="32" height="10"><line x1="0" y1="5" x2="32" y2="5" stroke="#00ff88" stroke-width="2" marker-end="url(#legE)"/></svg>
+      Electrochemical (E)
+    </span>
+    <span>
+      <svg width="32" height="10"><line x1="0" y1="5" x2="32" y2="5" stroke="#ffcc44" stroke-width="2" stroke-dasharray="5,3"/></svg>
+      Chemical (C)
+    </span>
   </div>
 </div>
 
-<!-- Tooltip -->
-<div class="node-tooltip" id="tooltip"></div>
+<a class="back-btn" onclick="window.close()" href="javascript:void(0)">← Back to Simulator</a>
+
+<div class="tip" id="tip"></div>
 
 <script>
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  ATN Parser
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ══════════════════════════════════════════════
+//  ATN parser — extracts species, E/C reactions
+// ══════════════════════════════════════════════
 function parseATN(text) {
-  var D = {
-    nSpecies: 0,
-    eRxns: [],
-    cRxns: [],
-    conc: {},
-    diff: {},
-    method: '',
-    area: '',
-    expParams: '',
-  };
-
+  var D = { n: 0, eRxns: [], cRxns: [], conc: {}, diff: {} };
   var lines = text.split(/\r?\n/);
 
-  function getVal(tag) {
+  function block(tag) {
     var re = new RegExp(tag, 'i');
     for (var i = 0; i < lines.length; i++) {
       if (re.test(lines[i])) {
-        var out = [];
+        var buf = [];
         for (var j = i + 1; j < lines.length; j++) {
           var l = lines[j].trim();
           if (!l) continue;
           if (l.startsWith('[')) break;
-          out.push(l);
+          buf.push(l);
         }
-        return out.join('\n').trim();
+        return buf.join('\n');
       }
     }
     return '';
   }
 
-  // Method
-  D.method = getVal('Method');
+  D.n = parseInt(block('Number of Reaction-diffusion Species')) || 0;
 
-  // Number of species
-  D.nSpecies = parseInt(getVal('Number of Reaction-diffusion Species')) || 0;
-
-  // Area
-  D.area = getVal('Area');
-
-  // Experimental params
-  D.expParams = getVal('Experimental');
-
-  // ── Electron Transfer Reactions ──
-  var etBlock = getVal('Electron Transfer Reactions');
-  if (etBlock) {
-    etBlock.replace(/\.\s*$/, '').split(/;/).forEach(function(r, idx) {
+  // ── Electron Transfer ──
+  var etb = block('Electron Transfer Reactions');
+  if (etb) {
+    etb.replace(/\.\s*$/, '').split(/;/).forEach(function(r, i) {
       r = r.replace(/\.$/, '').trim();
       if (!r) return;
-      var parts = r.split('|');
-      if (parts.length < 2) return;
-      var eq = parts[0].trim();
-      // 支持格式: "1+e<->2", "1 + e <-> 2", "e+1<->2" 等
-      var m = eq.match(/^(\d+)\s*\+\s*e\s*<-?->?\s*(\d+)$/i)
-           || eq.match(/^e\s*\+\s*(\d+)\s*<-?->?\s*(\d+)$/i);
-      var ox = m ? parseInt(m[1]) : null;
-      var red = m ? parseInt(m[2]) : null;
+      var pp = r.split('|');
+      var eq = pp[0].trim();
+      var m = eq.match(/^(\d+)\s*\+\s*e\s*<-?>?\s*(\d+)$/i)
+            || eq.match(/^e\s*\+\s*(\d+)\s*<-?>?\s*(\d+)$/i);
       D.eRxns.push({
-        id: idx + 1,
-        ox: ox,
-        red: red,
-        E0: parts[1] !== undefined ? parts[1].trim() : '?',
-        alpha: parts[2] !== undefined ? parts[2].trim() : '?',
-        n: parts[3] !== undefined ? parts[3].trim() : '?',
-        k0: parts[4] !== undefined ? parts[4].trim() : '?',
-        rawEq: eq,
+        id: i + 1,
+        ox:  m ? parseInt(m[1]) : null,
+        red: m ? parseInt(m[2]) : null,
+        E0:    pp[1] ? pp[1].trim() : '?',
+        alpha: pp[2] ? pp[2].trim() : '?',
+        n:     pp[3] ? pp[3].trim() : '?',
+        k0:    pp[4] ? pp[4].trim() : '?',
       });
     });
   }
 
-  // ── Chemical Reactions ──
-  var crBlock = getVal('Homogeneous Chemical Reactions');
-  if (crBlock) {
-    crBlock.replace(/\.\s*$/, '').split(/;/).forEach(function(r, idx) {
+  // ── Chemical ──
+  var crb = block('Homogeneous Chemical Reactions');
+  if (crb) {
+    crb.replace(/\.\s*$/, '').split(/;/).forEach(function(r, i) {
       r = r.replace(/\.$/, '').trim();
       if (!r) return;
-      var parts = r.split('|');
-      if (parts.length < 1) return;
-      var eq = parts[0].trim();
+      var pp = r.split('|');
+      var eq = pp[0].trim();
       if (!eq) return;
-      // 解析反应物 / 产物，支持 "1+2<->3", "1<->2+3", "1+2->3+4"
-      var reactants = [], products = [], reversible = false;
-      var sepMatch = eq.match(/<->/);
-      if (sepMatch) { reversible = true; }
-      var sidesSep = reversible ? '<->' : '->';
-      var sides = eq.split(sidesSep);
+      var rev = /\<-\>/.test(eq);
+      var sides = eq.split(rev ? '<->' : '->');
+      var lhs = [], rhs = [];
       if (sides.length >= 2) {
-        reactants = sides[0].split('+').map(function(s) { return parseInt(s.trim()); }).filter(Boolean);
-        products  = sides[1].split('+').map(function(s) { return parseInt(s.trim()); }).filter(Boolean);
+        lhs = sides[0].split('+').map(function(s){ return parseInt(s.trim()); }).filter(Boolean);
+        rhs = sides[1].split('+').map(function(s){ return parseInt(s.trim()); }).filter(Boolean);
       }
       D.cRxns.push({
-        id: idx + 1,
-        rawEq: eq,
-        reactants: reactants,
-        products: products,
-        reversible: reversible,
-        kf: parts[1] !== undefined ? parts[1].trim() : '?',
-        kb: parts[2] !== undefined ? parts[2].trim() : '?',
+        id: i + 1, rawEq: eq, lhs: lhs, rhs: rhs, rev: rev,
+        kf: pp[1] ? pp[1].trim() : '?',
+        kb: pp[2] ? pp[2].trim() : '?',
       });
     });
   }
 
   // ── Concentrations ──
-  var icBlock = getVal('Initial Concentrations');
-  parseRangeMap(icBlock, D.conc, parseFloat);
+  parseMap(block('Initial Concentrations'), D.conc, parseFloat);
 
-  // ── Diffusion coefficients ──
-  var dcBlock = getVal('Diffusion Coefficients');
-  parseRangeMap(dcBlock, D.diff, function(v) { return v; });
+  // ── Diffusion ──
+  parseMap(block('Diffusion Coefficients'), D.diff, function(v){ return v; });
 
   return D;
 }
 
-function parseRangeMap(block, map, conv) {
-  if (!block) return;
-  block.replace(/\.\s*$/, '').split(/;/).forEach(function(line) {
+function parseMap(blk, map, conv) {
+  if (!blk) return;
+  blk.replace(/\.\s*$/, '').split(/;/).forEach(function(line) {
     line = line.replace(/\.$/, '').trim();
     if (!line) return;
     var pp = line.split('|');
@@ -425,380 +218,288 @@ function parseRangeMap(block, map, conv) {
       if (s.indexOf('-') !== -1) {
         var rng = s.split('-');
         for (var i = parseInt(rng[0]); i <= parseInt(rng[1]); i++) map[i] = val;
-      } else {
-        map[parseInt(s)] = val;
-      }
+      } else { map[parseInt(s)] = val; }
     });
   });
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Mechanism Label
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function getMechLabel(D) {
+// ══════════════════════════════════════════════
+//  Mechanism label  (EE / ECE / CE / etc.)
+// ══════════════════════════════════════════════
+function mechLabel(D) {
   var e = D.eRxns.length, c = D.cRxns.length;
-  if (e === 0 && c === 0) return 'No Reactions Found';
+  if (e === 0 && c === 0) return '—';
   if (e > 0 && c === 0) return 'E'.repeat(e) + ' Mechanism';
   if (e === 0 && c > 0) return 'C'.repeat(c) + ' Mechanism';
-  // 尝试构建 ECE / EEC 等标注
-  // 简化处理：按 E、C 数量标注
-  return 'E' + (e > 1 ? e : '') + 'C' + (c > 1 ? c : '') + '-type Mechanism';
+  return 'EC-type (' + e + 'E + ' + c + 'C) Mechanism';
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Smart Flow Diagram (force-directed layout)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function drawFlow(D) {
+// ══════════════════════════════════════════════
+//  Draw SVG diagram
+// ══════════════════════════════════════════════
+function draw(D) {
   var svg = document.getElementById('flowSvg');
-  var n = D.nSpecies;
-  if (n === 0) { document.getElementById('flowSection').style.display = 'none'; return; }
+  var n = D.n;
+  if (n === 0) return;
 
-  var isMobile = window.innerWidth < 600;
-  var W = Math.min(860, window.innerWidth - 32);
-  var nodeR = isMobile ? 22 : 28;
-  var PADDING = nodeR + 20;
-
-  // ── Collect edges ──
+  // ── Build edge list ──
+  // edge: { from, to, type:'E'|'C', label, detail, rev }
   var edges = [];
   D.eRxns.forEach(function(r) {
     if (r.ox && r.red) {
-      edges.push({ from: r.ox, to: r.red, type: 'E', label: 'E' + r.id, detail: 'E°=' + r.E0 + 'V, α=' + r.alpha + ', k₀=' + r.k0, reversible: true });
+      edges.push({
+        from: r.ox, to: r.red, type: 'E', rev: true,
+        label: 'E' + r.id,
+        detail: 'E° = ' + r.E0 + ' V\nα = ' + r.alpha + '\nk₀ = ' + r.k0,
+      });
     }
   });
   D.cRxns.forEach(function(r) {
-    // Connect each reactant to each product
-    r.reactants.forEach(function(rx) {
-      r.products.forEach(function(px) {
-        edges.push({ from: rx, to: px, type: 'C', label: 'C' + r.id, detail: 'kf=' + r.kf + ', kb=' + r.kb, reversible: r.reversible });
+    r.lhs.forEach(function(a) {
+      r.rhs.forEach(function(b) {
+        edges.push({
+          from: a, to: b, type: 'C', rev: r.rev,
+          label: 'C' + r.id,
+          detail: 'kf = ' + r.kf + '\nkb = ' + r.kb,
+        });
       });
     });
   });
 
-  // ── Initial positions: try to follow reaction order (left to right) ──
-  // BFS from species with no in-edges
+  // ── BFS level assignment ──
   var inDeg = {};
   for (var i = 1; i <= n; i++) inDeg[i] = 0;
   edges.forEach(function(e) { if (e.to >= 1 && e.to <= n) inDeg[e.to]++; });
 
-  var levels = {};
-  var queue = [];
-  for (var i = 1; i <= n; i++) { if (inDeg[i] === 0) { queue.push(i); levels[i] = 0; } }
-  if (queue.length === 0) { levels[1] = 0; queue.push(1); }
-  var visited = {};
-  while (queue.length > 0) {
-    var cur = queue.shift();
-    if (visited[cur]) continue;
-    visited[cur] = true;
+  var level = {};
+  var q = [];
+  for (var i = 1; i <= n; i++) {
+    if (inDeg[i] === 0) { level[i] = 0; q.push(i); }
+  }
+  if (q.length === 0) { level[1] = 0; q.push(1); }
+
+  var seen = {};
+  while (q.length) {
+    var cur = q.shift();
+    if (seen[cur]) continue;
+    seen[cur] = true;
     edges.forEach(function(e) {
-      if (e.from === cur && !visited[e.to]) {
-        levels[e.to] = Math.max(levels[e.to] || 0, (levels[cur] || 0) + 1);
-        queue.push(e.to);
+      if (e.from === cur && !seen[e.to]) {
+        level[e.to] = Math.max(level[e.to] || 0, (level[cur] || 0) + 1);
+        q.push(e.to);
       }
     });
   }
-  for (var i = 1; i <= n; i++) { if (levels[i] === undefined) levels[i] = 0; }
+  for (var i = 1; i <= n; i++) { if (level[i] === undefined) level[i] = 0; }
 
-  // Count max level
-  var maxLevel = 0;
-  for (var i = 1; i <= n; i++) maxLevel = Math.max(maxLevel, levels[i]);
+  var maxLv = 0;
+  for (var i = 1; i <= n; i++) maxLv = Math.max(maxLv, level[i]);
 
   // Group by level
-  var levelGroups = {};
+  var grp = {};
   for (var i = 1; i <= n; i++) {
-    var lv = levels[i];
-    if (!levelGroups[lv]) levelGroups[lv] = [];
-    levelGroups[lv].push(i);
+    var lv = level[i];
+    if (!grp[lv]) grp[lv] = [];
+    grp[lv].push(i);
   }
-
-  // Compute SVG dimensions
-  var cols = maxLevel + 1;
   var maxPerCol = 1;
-  for (var lv = 0; lv <= maxLevel; lv++) { if (levelGroups[lv]) maxPerCol = Math.max(maxPerCol, levelGroups[lv].length); }
+  for (var lv = 0; lv <= maxLv; lv++) { if (grp[lv]) maxPerCol = Math.max(maxPerCol, grp[lv].length); }
 
-  var colSpacing = Math.max(100, Math.min(160, (W - PADDING * 2) / Math.max(cols - 1, 1)));
-  var rowSpacing = Math.max(80, nodeR * 3);
-  var svgW = PADDING * 2 + colSpacing * (cols - 1);
-  var svgH = PADDING * 2 + rowSpacing * (maxPerCol - 1) + nodeR * 2 + 40;
-  svgH = Math.max(svgH, 180);
+  // ── Layout constants ──
+  var W      = Math.min(860, window.innerWidth - 32);
+  var NR     = window.innerWidth < 500 ? 22 : 30;   // node radius
+  var cols   = maxLv + 1;
+  var colGap = Math.max(110, Math.min(180, (W - NR * 2 - 40) / Math.max(cols - 1, 1)));
+  var rowGap = Math.max(90, NR * 3.2);
+  var svgW   = 40 + NR + colGap * (cols - 1) + NR + 40;
+  var svgH   = 40 + NR + rowGap * (maxPerCol - 1) + NR + 50;
+  svgH = Math.max(svgH, 200);
 
   svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
   svg.setAttribute('height', svgH);
 
-  // Assign positions
+  // ── Node positions ──
   var pos = {};
-  for (var lv = 0; lv <= maxLevel; lv++) {
-    var group = levelGroups[lv] || [];
-    var totalH = rowSpacing * (group.length - 1);
-    var startY = (svgH - totalH) / 2;
-    group.forEach(function(sid, gi) {
-      pos[sid] = {
-        x: PADDING + lv * colSpacing,
-        y: startY + gi * rowSpacing
-      };
+  for (var lv = 0; lv <= maxLv; lv++) {
+    var g = grp[lv] || [];
+    var totalH = rowGap * (g.length - 1);
+    var sy = (svgH - totalH) / 2;
+    g.forEach(function(sid, gi) {
+      pos[sid] = { x: 40 + NR + lv * colGap, y: sy + gi * rowGap };
     });
   }
 
-  // ── Build SVG ──
-  var svgHtml = '';
+  // ── SVG build ──
+  var h = '';
 
-  // Defs: arrowheads
-  svgHtml += '<defs>';
-  svgHtml += '<marker id="arrowE" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">';
-  svgHtml += '<path d="M0,0 L0,8 L9,4 z" fill="#00ff88"/></marker>';
-  svgHtml += '<marker id="arrowEr" markerWidth="9" markerHeight="9" refX="2" refY="4" orient="auto-start-reverse">';
-  svgHtml += '<path d="M0,4 L9,0 L9,8 z" fill="#00ff88" opacity="0.5"/></marker>';
-  svgHtml += '<marker id="arrowC" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">';
-  svgHtml += '<path d="M0,0 L0,8 L9,4 z" fill="#ffcc44"/></marker>';
-  svgHtml += '<marker id="arrowCr" markerWidth="9" markerHeight="9" refX="2" refY="4" orient="auto-start-reverse">';
-  svgHtml += '<path d="M0,4 L9,0 L9,8 z" fill="#ffcc44" opacity="0.5"/></marker>';
-  svgHtml += '</defs>';
+  // defs: arrowheads
+  h += '<defs>';
+  h += mkArrow('aE',  '#00ff88');
+  h += mkArrow('aEr', '#00ff88', 0.5);
+  h += mkArrow('aC',  '#ffcc44');
+  h += mkArrow('aCr', '#ffcc44', 0.5);
+  h += '</defs>';
 
-  // Draw edges
-  // Group edges between same pair to offset them
-  var edgeMap = {};
+  // ── Edges ──
   edges.forEach(function(e) {
-    var key = Math.min(e.from, e.to) + '_' + Math.max(e.from, e.to);
-    if (!edgeMap[key]) edgeMap[key] = [];
-    edgeMap[key].push(e);
-  });
-
-  edges.forEach(function(e, ei) {
     if (!pos[e.from] || !pos[e.to]) return;
     var p1 = pos[e.from], p2 = pos[e.to];
     var color = e.type === 'E' ? '#00ff88' : '#ffcc44';
-    var dash = e.type === 'C' ? '6,3' : 'none';
-    var arrId = e.type === 'E' ? 'arrowE' : 'arrowC';
-    var arrIdR = e.type === 'E' ? 'arrowEr' : 'arrowCr';
+    var dash  = e.type === 'C' ? '6,3' : 'none';
+    var aFwd  = e.type === 'E' ? 'aE' : 'aC';
+    var aRev  = e.type === 'E' ? 'aEr' : 'aCr';
 
-    // Direction vector
     var dx = p2.x - p1.x, dy = p2.y - p1.y;
-    var dist = Math.sqrt(dx * dx + dy * dy);
+    var dist = Math.sqrt(dx*dx + dy*dy);
     if (dist < 1) return;
-    var ux = dx / dist, uy = dy / dist;
+    var ux = dx/dist, uy = dy/dist;
 
-    // Start / end adjusted for node radius + arrowhead
-    var x1 = p1.x + ux * (nodeR + 2);
-    var y1 = p1.y + uy * (nodeR + 2);
-    var x2 = p2.x - ux * (nodeR + 10);
-    var y2 = p2.y - uy * (nodeR + 10);
+    // shrink endpoints to node edge
+    var x1 = p1.x + ux*(NR+2), y1 = p1.y + uy*(NR+2);
+    var x2 = p2.x - ux*(NR+11), y2 = p2.y - uy*(NR+11);
 
-    // Offset perpendicular for forward/reverse
-    var ox = -uy * 5, oy = ux * 5;
+    var ox = -uy*5, oy = ux*5;  // perpendicular offset
 
-    if (e.reversible) {
-      // Forward arrow (offset up)
-      svgHtml += '<line x1="' + (x1+ox) + '" y1="' + (y1+oy) + '" x2="' + (x2+ox) + '" y2="' + (y2+oy) +
-        '" stroke="' + color + '" stroke-width="2" marker-end="url(#' + arrId + ')" stroke-dasharray="' + dash + '"/>';
-      // Reverse arrow (offset down)
-      svgHtml += '<line x1="' + (x2-ox) + '" y1="' + (y2-oy) + '" x2="' + (x1-ox) + '" y2="' + (y1-oy) +
-        '" stroke="' + color + '" stroke-width="1.5" opacity="0.55" marker-end="url(#' + arrId + ')" stroke-dasharray="' + dash + '"/>';
+    if (e.rev) {
+      // forward (offset +)
+      h += line(x1+ox, y1+oy, x2+ox, y2+oy, color, 2.2, dash, 'url(#'+aFwd+')');
+      // reverse (offset -)
+      h += line(x2-ox, y2-oy, x1-ox, y1-oy, color, 1.5, dash, 'url(#'+aFwd+')', 0.5);
     } else {
-      svgHtml += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 +
-        '" stroke="' + color + '" stroke-width="2" marker-end="url(#' + arrId + ')" stroke-dasharray="' + dash + '"/>';
+      h += line(x1, y1, x2, y2, color, 2.2, dash, 'url(#'+aFwd+')');
     }
 
-    // Edge label
-    var mx = (x1 + x2) / 2 - uy * 16;
-    var my = (y1 + y2) / 2 + ux * 16;
-    var bgW = e.label.length * 7 + 10;
-    svgHtml += '<rect x="' + (mx - bgW/2) + '" y="' + (my - 10) + '" width="' + bgW + '" height="16" rx="4" fill="rgba(13,27,42,0.85)"/>';
-    svgHtml += '<text x="' + mx + '" y="' + (my + 3) + '" text-anchor="middle" font-size="11" fill="' + color + '" font-weight="bold">' + e.label + '</text>';
+    // edge label (background pill + text)
+    var mx = (x1+x2)/2 - uy*18, my = (y1+y2)/2 + ux*18;
+    var lw = e.label.length * 7 + 12;
+    h += '<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="16" rx="5"' +
+         ' fill="rgba(10,20,38,0.88)" stroke="'+color+'" stroke-width="0.8" opacity="0.9"/>';
+    h += '<text x="'+mx+'" y="'+(my+4)+'" text-anchor="middle"' +
+         ' font-size="11" font-weight="bold" fill="'+color+'">'+e.label+'</text>';
+
+    // invisible wide hit area for hover
+    h += '<line x1="'+(x1)+'" y1="'+(y1)+'" x2="'+(x2)+'" y2="'+(y2)+'"' +
+         ' stroke="transparent" stroke-width="18"' +
+         ' class="edge-hit" data-lbl="'+e.label+'" data-detail="'+encEsc(e.detail)+'" data-color="'+color+'"/>';
   });
 
-  // Draw nodes
+  // ── Nodes ──
   for (var si = 1; si <= n; si++) {
     var p = pos[si];
     if (!p) continue;
-    var concStr = D.conc[si] !== undefined ? D.conc[si] + ' mM' : '–';
-    var diffStr = D.diff[si] !== undefined ? D.diff[si] : '–';
 
-    // Glow effect circle
-    svgHtml += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + (nodeR + 6) + '" fill="rgba(102,204,255,0.06)"/>';
-    // Main circle
-    svgHtml += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + nodeR + '"' +
-      ' fill="rgba(15,35,60,0.9)" stroke="#66ccff" stroke-width="2"' +
-      ' class="flow-node" data-si="' + si + '" data-conc="' + concStr + '" data-diff="' + diffStr + '"' +
-      ' style="cursor:pointer"/>';
-    // Label
-    svgHtml += '<text x="' + p.x + '" y="' + (p.y + 5) + '" text-anchor="middle"' +
-      ' font-size="' + (isMobile ? 12 : 14) + '" fill="#ffffff" font-weight="bold" pointer-events="none">S' + si + '</text>';
-    // Concentration below
-    svgHtml += '<text x="' + p.x + '" y="' + (p.y + nodeR + 15) + '" text-anchor="middle"' +
-      ' font-size="9" fill="#446688" pointer-events="none">' + concStr + '</text>';
+    var concStr = D.conc[si] !== undefined ? D.conc[si]+' mM' : '–';
+    var diffStr = D.diff[si] !== undefined ? D.diff[si]+' cm²/s' : '–';
+    var roles   = getSpeciesRoles(si, D);
+    var detail  = 'Conc: '+concStr+'\nD: '+diffStr+(roles.length ? '\n'+roles.join('\n') : '');
+
+    // outer glow
+    h += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(NR+8)+'"' +
+         ' fill="rgba(102,204,255,0.05)"/>';
+    // node circle
+    h += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+NR+'"' +
+         ' fill="rgba(12,28,52,0.92)" stroke="#66ccff" stroke-width="2"' +
+         ' class="node" data-si="'+si+'" data-detail="'+encEsc(detail)+'"' +
+         ' style="cursor:pointer"/>';
+    // label
+    var fs = window.innerWidth < 500 ? 12 : 15;
+    h += '<text x="'+p.x+'" y="'+(p.y+fs/2-1)+'" text-anchor="middle"' +
+         ' font-size="'+fs+'" fill="#ffffff" font-weight="bold" pointer-events="none">S'+si+'</text>';
+    // concentration subtitle
+    h += '<text x="'+p.x+'" y="'+(p.y+NR+16)+'" text-anchor="middle"' +
+         ' font-size="9" fill="#3d6688" pointer-events="none">'+concStr+'</text>';
   }
 
-  svg.innerHTML = svgHtml;
+  svg.innerHTML = h;
 
-  // ── Tooltip for nodes ──
-  var tooltip = document.getElementById('tooltip');
-  svg.querySelectorAll('.flow-node').forEach(function(el) {
+  // ── Tooltip ──
+  var tip = document.getElementById('tip');
+
+  function showTip(x, y, content, color) {
+    tip.innerHTML = content.replace(/\n/g, '<br>');
+    if (color) tip.style.borderColor = color;
+    tip.style.display = 'block';
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    var wx = window.innerWidth, wy = window.innerHeight;
+    tip.style.left = Math.min(x + 14, wx - tw - 8) + 'px';
+    tip.style.top  = Math.min(y - 10, wy - th - 8) + 'px';
+  }
+  function hideTip() { tip.style.display = 'none'; }
+
+  svg.querySelectorAll('.node').forEach(function(el) {
     el.addEventListener('mousemove', function(ev) {
       var si = el.getAttribute('data-si');
-      var conc = el.getAttribute('data-conc');
-      var diff = el.getAttribute('data-diff');
-      var roles = getSpeciesRoles(parseInt(si), D);
-      tooltip.innerHTML = '<b style="color:#66ccff">S' + si + '</b><br>' +
-        'Conc: ' + conc + '<br>' +
-        'D: ' + diff + ' cm²/s<br>' +
-        (roles.length ? '<span style="color:#aae">' + roles.join('<br>') + '</span>' : '');
-      tooltip.style.display = 'block';
-      tooltip.style.left = (ev.clientX + 12) + 'px';
-      tooltip.style.top  = (ev.clientY - 10) + 'px';
+      showTip(ev.clientX, ev.clientY,
+        '<b style="color:#66ccff">S'+si+'</b>\n' + decEsc(el.getAttribute('data-detail')), '#66ccff');
     });
-    el.addEventListener('mouseleave', function() {
-      tooltip.style.display = 'none';
-    });
+    el.addEventListener('mouseleave', hideTip);
     el.addEventListener('touchstart', function(ev) {
       ev.preventDefault();
       var si = el.getAttribute('data-si');
-      var conc = el.getAttribute('data-conc');
-      var diff = el.getAttribute('data-diff');
-      var roles = getSpeciesRoles(parseInt(si), D);
-      tooltip.innerHTML = '<b style="color:#66ccff">S' + si + '</b><br>' +
-        'Conc: ' + conc + '<br>' +
-        'D: ' + diff + ' cm²/s<br>' +
-        (roles.length ? '<span style="color:#aae">' + roles.join('<br>') + '</span>' : '');
       var r = el.getBoundingClientRect();
-      tooltip.style.display = 'block';
-      tooltip.style.left = (r.left + r.width + 6) + 'px';
-      tooltip.style.top  = (r.top) + 'px';
-      setTimeout(function() { tooltip.style.display = 'none'; }, 3000);
+      showTip(r.right, r.top,
+        '<b style="color:#66ccff">S'+si+'</b>\n' + decEsc(el.getAttribute('data-detail')), '#66ccff');
+      setTimeout(hideTip, 3000);
     });
+  });
+
+  svg.querySelectorAll('.edge-hit').forEach(function(el) {
+    el.addEventListener('mousemove', function(ev) {
+      var lbl = el.getAttribute('data-lbl');
+      var color = el.getAttribute('data-color');
+      showTip(ev.clientX, ev.clientY,
+        '<b style="color:'+color+'">'+lbl+'</b>\n' + decEsc(el.getAttribute('data-detail')), color);
+    });
+    el.addEventListener('mouseleave', hideTip);
   });
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Species roles helper
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── helpers ──
+function mkArrow(id, color, op) {
+  var o = op ? ' opacity="'+op+'"' : '';
+  return '<marker id="'+id+'" markerWidth="9" markerHeight="8" refX="7" refY="4" orient="auto">' +
+         '<path d="M0,0 L0,8 L9,4 z" fill="'+color+'"'+o+'/></marker>';
+}
+function line(x1,y1,x2,y2,color,sw,dash,markerEnd,op) {
+  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'"' +
+    ' stroke="'+color+'" stroke-width="'+sw+'"' +
+    (dash && dash !== 'none' ? ' stroke-dasharray="'+dash+'"' : '') +
+    (markerEnd ? ' marker-end="'+markerEnd+'"' : '') +
+    (op ? ' opacity="'+op+'"' : '') + '/>';
+}
 function getSpeciesRoles(si, D) {
-  var roles = [];
-  D.eRxns.forEach(function(r) {
-    if (r.ox === si) roles.push('Oxidized in E' + r.id);
-    if (r.red === si) roles.push('Reduced in E' + r.id);
+  var r = [];
+  D.eRxns.forEach(function(rx) {
+    if (rx.ox  === si) r.push('Oxidized in E'+rx.id);
+    if (rx.red === si) r.push('Reduced in E'+rx.id);
   });
-  D.cRxns.forEach(function(r) {
-    if (r.reactants.indexOf(si) !== -1) roles.push('Reactant in C' + r.id);
-    if (r.products.indexOf(si) !== -1) roles.push('Product in C' + r.id);
+  D.cRxns.forEach(function(rx) {
+    if (rx.lhs.indexOf(si) !== -1) r.push('Reactant in C'+rx.id);
+    if (rx.rhs.indexOf(si) !== -1) r.push('Product in C'+rx.id);
   });
-  return roles;
+  return r;
 }
+function encEsc(s) { return (s||'').replace(/"/g,'&quot;').replace(/\n/g,'&#10;'); }
+function decEsc(s) { return (s||'').replace(/&quot;/g,'"').replace(/&#10;/g,'\n'); }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Reaction cards
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function buildCards(D) {
-  var eGrid = document.getElementById('eGrid');
-  var cGrid = document.getElementById('cGrid');
-
-  if (D.eRxns.length > 0) {
-    document.getElementById('eSection').style.display = '';
-    D.eRxns.forEach(function(r) {
-      var card = document.createElement('div');
-      card.className = 'rxn-card echem';
-      var eqHtml = '<span class="sp">S' + r.ox + '</span>' +
-        '<span class="el"> + e⁻ </span>' +
-        '<span class="arr">⇌</span>' +
-        '<span class="sp"> S' + r.red + '</span>';
-      card.innerHTML =
-        '<span class="rxn-badge badge-e">E' + r.id + ' &nbsp; Electrochemical</span>' +
-        '<div class="rxn-eq">' + eqHtml + '</div>' +
-        '<div class="rxn-params">' +
-          '<div class="chip">E° = <b>' + r.E0 + ' V</b></div>' +
-          '<div class="chip">α = <b>' + r.alpha + '</b></div>' +
-          '<div class="chip">n = <b>' + r.n + '</b></div>' +
-          '<div class="chip">k₀ = <b>' + r.k0 + '</b></div>' +
-        '</div>';
-      eGrid.appendChild(card);
-    });
-  }
-
-  if (D.cRxns.length > 0) {
-    document.getElementById('cSection').style.display = '';
-    D.cRxns.forEach(function(r) {
-      var card = document.createElement('div');
-      card.className = 'rxn-card chem';
-      // Format equation: highlight species numbers
-      var eqHtml = r.rawEq
-        .replace(/(\d+)/g, '<span class="sp">S$1</span>')
-        .replace(/<->/g, '<span class="arr"> ⇌ </span>')
-        .replace(/->/g, '<span class="arr"> → </span>')
-        .replace(/\+/g, '<span style="color:#aaa"> + </span>');
-      card.innerHTML =
-        '<span class="rxn-badge badge-c">C' + r.id + ' &nbsp; Chemical</span>' +
-        '<div class="rxn-eq">' + eqHtml + '</div>' +
-        '<div class="rxn-params">' +
-          '<div class="chip">k<sub>f</sub> = <b>' + r.kf + '</b></div>' +
-          '<div class="chip">k<sub>b</sub> = <b>' + r.kb + '</b></div>' +
-          (r.reversible ? '<div class="chip">Reversible ⇌</div>' : '<div class="chip">Irreversible →</div>') +
-        '</div>';
-      cGrid.appendChild(card);
-    });
-  }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Species table
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function buildSpeciesTable(D) {
-  var tbody = document.getElementById('spTbody');
-  for (var i = 1; i <= D.nSpecies; i++) {
-    var roles = getSpeciesRoles(i, D);
-    var rolesHtml = roles.map(function(r) {
-      var cls = r.indexOf(' E') !== -1 ? 'role-e' : 'role-c';
-      return '<span class="' + cls + '">' + r + '</span>';
-    }).join('<br>');
-    var tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td><span class="sp-badge">' + i + '</span> S' + i + '</td>' +
-      '<td>' + (D.conc[i] !== undefined ? D.conc[i] : '–') + '</td>' +
-      '<td>' + (D.diff[i] !== undefined ? D.diff[i] : '–') + '</td>' +
-      '<td>' + (rolesHtml || '<span style="color:#446688">—</span>') + '</td>';
-    tbody.appendChild(tr);
-  }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Summary cards
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function buildSummary(D) {
-  var row = document.getElementById('summaryRow');
-  [
-    { num: D.nSpecies,                           lbl: 'Species' },
-    { num: D.eRxns.length,                       lbl: 'E-Transfer Rxns' },
-    { num: D.cRxns.length,                       lbl: 'Chemical Rxns' },
-    { num: D.eRxns.length + D.cRxns.length,     lbl: 'Total Steps' },
-  ].forEach(function(c) {
-    var d = document.createElement('div');
-    d.className = 'summary-card';
-    d.innerHTML = '<div class="num">' + c.num + '</div><div class="lbl">' + c.lbl + '</div>';
-    row.appendChild(d);
-  });
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Main
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ══════════════════════════════════════════════
+//  Entry point
+// ══════════════════════════════════════════════
 (function() {
   var atn = sessionStorage.getItem('_ecnetsim_atn') || '';
   if (!atn.trim()) {
     document.getElementById('errorMsg').style.display = 'block';
     return;
   }
-
   var D = parseATN(atn);
-
-  if (D.nSpecies === 0 && D.eRxns.length === 0 && D.cRxns.length === 0) {
+  if (D.n === 0 && D.eRxns.length === 0 && D.cRxns.length === 0) {
     document.getElementById('errorMsg').style.display = 'block';
     return;
   }
 
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('mechTag').textContent = getMechLabel(D);
-
-  buildSummary(D);
-  drawFlow(D);
-  buildCards(D);
-  buildSpeciesTable(D);
+  document.getElementById('mechLabel').textContent = mechLabel(D);
+  document.getElementById('diagramWrap').style.display = 'block';
+  draw(D);
 })();
 </script>
 </body>
