@@ -8,95 +8,73 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
-  background: #0d1b2a;
-  color: #e0e8f0;
+  background: #0a1929;
+  color: #c8d8e8;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
+  padding: 14px 16px 32px;
 }
-
+.back-btn {
+  padding: 5px 20px;
+  background: transparent;
+  border: 1px solid #3388ff;
+  color: #3388ff;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  margin-bottom: 12px;
+}
+.back-btn:hover { background: rgba(51,136,255,0.1); }
 h1 {
-  font-size: 16px;
-  color: #66ccff;
+  font-size: 14px;
+  color: #3388ff;
   letter-spacing: 1px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   text-align: center;
 }
 .mech-label {
-  font-size: 13px;
-  color: #00ff88;
+  font-size: 11px;
+  color: #00bb66;
   font-weight: bold;
   letter-spacing: 2px;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
   text-align: center;
 }
-
 #errorMsg {
-  color: #ff8888;
+  color: #ff6666;
   font-size: 14px;
   text-align: center;
   line-height: 2;
   display: none;
 }
-
 #diagramWrap {
   width: 100%;
-  max-width: 860px;
+  max-width: 900px;
+  display: none;
 }
-
 #flowSvg {
   width: 100%;
   display: block;
   overflow: visible;
+  cursor: default;
 }
-
-/* legend */
-.legend {
-  margin-top: 16px;
-  display: flex;
-  gap: 24px;
-  justify-content: center;
+.zone-lbl {
   font-size: 11px;
-  color: #557799;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-anchor: start;
+  opacity: 0.7;
 }
-.legend span { display: flex; align-items: center; gap: 6px; }
-
-/* back button */
-.back-btn {
-  margin-top: 28px;
-  padding: 7px 24px;
-  background: transparent;
-  border: 1px solid #3388ff;
-  color: #66ccff;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  text-decoration: none;
-}
-.back-btn:hover { background: rgba(51,136,255,0.12); }
-
-/* tooltip */
-.tip {
-  position: fixed;
-  background: rgba(8,18,32,0.96);
-  border: 1px solid #336688;
-  border-radius: 7px;
-  padding: 7px 13px;
-  font-size: 11px;
-  color: #cce8ff;
-  pointer-events: none;
-  z-index: 9999;
-  display: none;
-  line-height: 1.7;
-  max-width: 200px;
-}
+.zone-lbl-e { fill: #00cc66; }
+.zone-lbl-c { fill: #cc8800; }
 </style>
 </head>
 <body>
 
+<a class="back-btn" onclick="window.close()" href="javascript:void(0)">← Back to Simulator</a>
 <h1>⚗️ Reaction Mechanism</h1>
 <div class="mech-label" id="mechLabel"></div>
 
@@ -105,27 +83,13 @@ h1 {
   Please load an ATN file in the simulator first.
 </div>
 
-<div id="diagramWrap" style="display:none">
+<div id="diagramWrap">
   <svg id="flowSvg"></svg>
-  <div class="legend">
-    <span>
-      <svg width="32" height="10"><line x1="0" y1="5" x2="32" y2="5" stroke="#00ff88" stroke-width="2" marker-end="url(#legE)"/></svg>
-      Electrochemical (E)
-    </span>
-    <span>
-      <svg width="32" height="10"><line x1="0" y1="5" x2="32" y2="5" stroke="#ffcc44" stroke-width="2" stroke-dasharray="5,3"/></svg>
-      Chemical (C)
-    </span>
-  </div>
 </div>
-
-<a class="back-btn" onclick="window.close()" href="javascript:void(0)">← Back to Simulator</a>
-
-<div class="tip" id="tip"></div>
 
 <script>
 // ══════════════════════════════════════════════
-//  ATN parser — extracts species, E/C reactions
+//  ATN parser
 // ══════════════════════════════════════════════
 function parseATN(text) {
   var D = { n: 0, eRxns: [], cRxns: [], conc: {}, diff: {} };
@@ -150,7 +114,6 @@ function parseATN(text) {
 
   D.n = parseInt(block('Number of Reaction-diffusion Species')) || 0;
 
-  // ── Electron Transfer ──
   var etb = block('Electron Transfer Reactions');
   if (etb) {
     etb.replace(/\.\s*$/, '').split(/;/).forEach(function(r, i) {
@@ -158,12 +121,21 @@ function parseATN(text) {
       if (!r) return;
       var pp = r.split('|');
       var eq = pp[0].trim();
-      var m = eq.match(/^(\d+)\s*\+\s*e\s*<-?>?\s*(\d+)$/i)
-            || eq.match(/^e\s*\+\s*(\d+)\s*<-?>?\s*(\d+)$/i);
+      // Support formats:
+      //   "1+e-->2", "1+e->2", "1+e<->2"   (reduction: species + electron)
+      //   "e+1->2"                             (alternative reduction format)
+      //   "1-e<->2", "1-e->2"                 (oxidation: species loses electron)
+      var rev = /<->/.test(eq);
+      var isOxidation = /-\s*e/.test(eq);  // "-e" means oxidation
+      var m = eq.match(/^(\d+)\s*\+\s*e\s*(?:<->|-{1,3}>)\s*(\d+)$/i)
+            || eq.match(/^e\s*\+\s*(\d+)\s*(?:<->|-{1,3}>)\s*(\d+)$/i)
+            || eq.match(/^(\d+)\s*-\s*e\s*(?:<->|-{1,3}>)\s*(\d+)$/i);
       D.eRxns.push({
-        id: i + 1,
-        ox:  m ? parseInt(m[1]) : null,
-        red: m ? parseInt(m[2]) : null,
+        id:    i + 1,
+        ox:    m ? parseInt(m[1]) : null,
+        red:   m ? parseInt(m[2]) : null,
+        rev:   rev,
+        isOx:  isOxidation,
         E0:    pp[1] ? pp[1].trim() : '?',
         alpha: pp[2] ? pp[2].trim() : '?',
         n:     pp[3] ? pp[3].trim() : '?',
@@ -172,7 +144,6 @@ function parseATN(text) {
     });
   }
 
-  // ── Chemical ──
   var crb = block('Homogeneous Chemical Reactions');
   if (crb) {
     crb.replace(/\.\s*$/, '').split(/;/).forEach(function(r, i) {
@@ -181,25 +152,21 @@ function parseATN(text) {
       var pp = r.split('|');
       var eq = pp[0].trim();
       if (!eq) return;
-      var rev = /\<-\>/.test(eq);
+      var rev = /<->/.test(eq);
       var sides = eq.split(rev ? '<->' : '->');
       var lhs = [], rhs = [];
       if (sides.length >= 2) {
         lhs = sides[0].split('+').map(function(s){ return parseInt(s.trim()); }).filter(Boolean);
         rhs = sides[1].split('+').map(function(s){ return parseInt(s.trim()); }).filter(Boolean);
       }
-      D.cRxns.push({
-        id: i + 1, rawEq: eq, lhs: lhs, rhs: rhs, rev: rev,
+      D.cRxns.push({ id: i + 1, rawEq: eq, lhs: lhs, rhs: rhs, rev: rev,
         kf: pp[1] ? pp[1].trim() : '?',
         kb: pp[2] ? pp[2].trim() : '?',
       });
     });
   }
 
-  // ── Concentrations ──
   parseMap(block('Initial Concentrations'), D.conc, parseFloat);
-
-  // ── Diffusion ──
   parseMap(block('Diffusion Coefficients'), D.diff, function(v){ return v; });
 
   return D;
@@ -224,7 +191,338 @@ function parseMap(blk, map, conv) {
 }
 
 // ══════════════════════════════════════════════
-//  Mechanism label  (EE / ECE / CE / etc.)
+//  Draw — E left, C right; dark bg
+// ══════════════════════════════════════════════
+function draw(D) {
+  var svg = document.getElementById('flowSvg');
+  if (D.n === 0) return;
+
+  var FS   = window.innerWidth < 500 ? 10 : 11;
+  var PAD  = 16;
+  var lblH = 14;
+  var ROW  = 22;
+  var GAP  = 1;
+
+  var specW = FS * 3.2;
+  var arrW  = 50;
+  var colW  = specW + arrW + specW;
+  var cColW = 180;
+
+  var eRows = D.eRxns.length;
+  var cRows = D.cRxns.length;
+  var maxRows = Math.max(eRows, cRows, 1);
+
+  var colGap = 40;
+  var svgW   = PAD + colW + colGap + cColW + PAD;
+  var svgH   = lblH + lblH + maxRows * ROW + (maxRows - 1) * GAP + 16;
+
+  svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
+  svg.setAttribute('height', svgH);
+
+  var h = '';
+
+  function mkArrow(id, color, op) {
+    var o = op ? ' opacity="'+op+'"' : '';
+    return '<marker id="'+id+'" markerWidth="7" markerHeight="6" refX="5" refY="3" orient="auto">' +
+           '<path d="M0,0 L0,6 L7,3 z" fill="'+color+'"'+o+'/></marker>';
+  }
+  function mkDoubleArrow(id, color) {
+    return '<marker id="'+id+'" markerWidth="9" markerHeight="7" refX="4.5" refY="3.5" orient="auto">' +
+           '<path d="M0,3.5 L4,0 L4,7 z M9,3.5 L5,0 L5,7 z" fill="'+color+'"/>' +
+           '</marker>';
+  }
+  function ln(x1,y1,x2,y2,color,sw,dash,mEnd,op) {
+    return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'"' +
+           ' x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'"' +
+           ' stroke="'+color+'" stroke-width="'+sw+'"' +
+           (dash ? ' stroke-dasharray="'+dash+'"' : '') +
+           (mEnd ? ' marker-end="'+mEnd+'"' : '') +
+           (op  ? ' opacity="'+op+'"' : '') + '/>';
+  }
+
+  // Species number — with a highlight rect overlay for hover
+  function num(x, y, n, color) {
+    if (n === null || n === undefined) return '';
+    var bx = (x - FS * 0.75).toFixed(1);
+    var by = (y - FS * 0.85).toFixed(1);
+    var bw = (FS * 1.5).toFixed(1);
+    var bh = (FS * 1.5).toFixed(1);
+    return '<g class="sp-node" data-sid="'+n+'" style="cursor:pointer">' +
+           '<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="4"' +
+           ' fill="none" stroke="'+color+'" stroke-width="1.5" stroke-dasharray="4,2" opacity="0" class="sp-hl"/>' +
+           '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'"' +
+           ' text-anchor="middle" dominant-baseline="central"' +
+           ' font-size="'+FS+'" font-weight="bold" fill="'+color+'">'+n+'</text>' +
+           '</g>';
+  }
+
+  // Reaction pill (box label)
+  function pill(cx, cy, label, color, detail) {
+    var lw = label.length * 6.5 + 12;
+    var esc = (detail||'').replace(/"/g,'&quot;');
+    var rect = '<rect x="'+(cx - lw/2)+'" y="'+(cy-7)+'" width="'+lw+'" height="14" rx="3"' +
+               ' fill="rgba(255,255,255,0.06)" stroke="'+color+'" stroke-width="1"/>';
+    var txt  = '<text x="'+cx.toFixed(1)+'" y="'+(cy+3.5)+'" text-anchor="middle"' +
+               ' font-size="10" font-weight="bold" fill="'+color+'">'+label+'</text>';
+    return '<g class="rxn-node" data-tip="'+esc+'" style="cursor:pointer">' +
+           rect + txt + '</g>';
+  }
+
+  // Reaction label with parentheses (no box)
+  function paren(label, color) {
+    return '<tspan fill="'+color+'" font-weight="bold">('+label+')</tspan>';
+  }
+
+  h += '<defs>';
+  h += mkArrow('aE',     '#00cc66');
+  h += mkDoubleArrow('aE2', '#00cc66');
+  h += mkArrow('aC',     '#cc8800');
+  h += mkArrow('aCr',    '#cc8800', 0.5);
+  h += '</defs>';
+
+  var eCX = PAD + colW / 2;
+  var cCX = PAD + colW + colGap + cColW / 2;
+
+  // Left edge of each column (for equation alignment)
+  var eLeft = PAD;
+  var cLeft = PAD + colW + colGap;
+
+  h += '<text class="zone-lbl zone-lbl-e" x="'+(eLeft)+'" y="12">ELECTRON TRANSFER</text>';
+  h += '<text class="zone-lbl zone-lbl-c" x="'+(cLeft)+'" y="12">CHEMICAL REACTION</text>';
+
+  var eSpecX_L = eCX - arrW/2 - specW/2;
+  var eSpecX_R = eCX + arrW/2 + specW/2;
+
+// ── Format scientific notation as "a×10^b" (superscript) ──
+  var SUP = ['\u2070','\u00B9','\u00B2','\u00B3','\u2074',
+             '\u2075','\u2076','\u2077','\u2078','\u2079'];
+  function fmt(v) {
+    if (v === '?' || v === undefined || v === null) return '?';
+    v = String(v).trim();
+    var m = v.match(/^([\d.]+)e([+-]?\d+)$/i);
+    if (!m) return v;
+    var base = parseFloat(m[1]).toFixed(2).replace(/\.?0+$/, '');
+    var exp  = parseInt(m[2]);
+    if (exp === 0) return base;
+    var neg = exp < 0;
+    exp = Math.abs(exp);
+    var sup = '';
+    if (neg) sup += '\u207B';  // ⁻
+    String(exp).split('').forEach(function(d){ sup += SUP[parseInt(d)]; });
+    return base + '\u00D710' + sup;
+  }
+  var allSids = {};
+  D.eRxns.forEach(function(r) {
+    if (r.ox  !== null) allSids[r.ox]  = true;
+    if (r.red !== null) allSids[r.red] = true;
+  });
+  D.cRxns.forEach(function(r) {
+    r.lhs.forEach(function(s){ allSids[s] = true; });
+    r.rhs.forEach(function(s){ allSids[s] = true; });
+  });
+
+  var PALETTE = [
+    '#ff6666','#66aaff','#66dd77','#ffaa44',
+    '#cc88ff','#44dddd','#ff88aa','#aacc44',
+    '#ffdd44','#88ddff','#ff7788','#99bbcc',
+  ];
+  var spColors = {};
+  Object.keys(allSids).map(Number).sort(function(a,b){ return a-b; })
+    .forEach(function(sid, i) {
+      spColors[sid] = PALETTE[i % PALETTE.length];
+    });
+
+  // ── E reactions — inline: (E1) 1 + e⁻ → 2 ──
+  for (var ei = 0; ei < eRows; ei++) {
+    var r   = D.eRxns[ei];
+    var cy2 = lblH + lblH + ei * (ROW + GAP) + ROW / 2;
+
+    // Determine arrow direction and electron notation based on oxidation/reduction
+    var eSym = r.isOx ? ' - e    ' : ' + e    ';
+    var eDetail;
+    if (r.isOx) {
+      eDetail = 'Equation:  ' + r.ox + ' - e\u207B ' + (r.rev ? '\u21CC' : '\u2192') + ' ' + r.red +
+                '\nE\u00B0 = ' + fmt(r.E0) + ' V' +
+                '\n\u03B1 = ' + fmt(r.alpha) +
+                '\nn = ' + r.n +
+                '\nk\u2080 = ' + fmt(r.k0) + ' cm\u00B7s\u207B\u00B9';
+    } else {
+      eDetail = 'Equation:  ' + r.ox + ' + e\u207B ' + (r.rev ? '\u21CC' : '\u2192') + ' ' + r.red +
+                '\nE\u00B0 = ' + fmt(r.E0) + ' V' +
+                '\n\u03B1 = ' + fmt(r.alpha) +
+                '\nn = ' + r.n +
+                '\nk\u2080 = ' + fmt(r.k0) + ' cm\u00B7s\u207B\u00B9';
+    }
+    var arrSym = r.rev ? '\u21CC' : '\u2192';
+
+    var eTextFS = FS;
+    var eTspanParts = [];
+    // (E1) label — no tooltip
+    eTspanParts.push('<tspan fill="#00cc66" font-weight="bold">(E'+r.id+')</tspan>');
+    eTspanParts.push('<tspan fill="#00cc66">   </tspan>');
+    // ox species
+    eTspanParts.push('<tspan fill="'+spColors[r.ox]+'" font-weight="bold" class="sp-node" data-sid="'+r.ox+'" data-rxn-sid="'+r.id+'-ox">'+r.ox+'</tspan>');
+    eTspanParts.push('<tspan fill="#00cc66">'+eSym+'</tspan>');
+    // arrow — shows reaction tooltip
+    eTspanParts.push('<tspan stroke="#00cc66" stroke-width="1.2" fill="#00cc66" class="rxn-arrow" data-tip="'+eDetail.replace(/"/g,'&quot;')+'">'+arrSym+'</tspan>');
+    eTspanParts.push('<tspan fill="#00cc66">    </tspan>');
+    // red species
+    eTspanParts.push('<tspan fill="'+spColors[r.red]+'" font-weight="bold" class="sp-node" data-sid="'+r.red+'" data-rxn-sid="'+r.id+'-red">'+r.red+'</tspan>');
+
+    h += '<text x="'+(eLeft+4).toFixed(1)+'" y="'+cy2.toFixed(1)+'"' +
+         ' text-anchor="start" dominant-baseline="central"' +
+         ' font-size="'+eTextFS+'">' +
+         eTspanParts.join('') + '</text>';
+    // E reaction highlight rects (placeholders, will be positioned after rendering)
+    h += '<rect class="rxn-hl" data-sid="'+r.ox+'" data-rxn-sid="'+r.id+'-ox" rx="3" fill="none" stroke="'+spColors[r.ox]+'" stroke-width="0" stroke-dasharray="4,2"/>';
+    h += '<rect class="rxn-hl" data-sid="'+r.red+'" data-rxn-sid="'+r.id+'-red" rx="3" fill="none" stroke="'+spColors[r.red]+'" stroke-width="0" stroke-dasharray="4,2"/>';
+  }
+
+  // ── C reactions — inline: (C1) 1 + 2 → 3 ──
+  var cTextFS = FS;
+  for (var ci = 0; ci < cRows; ci++) {
+    var r   = D.cRxns[ci];
+    var cy2 = lblH + lblH + ci * (ROW + GAP) + ROW / 2;
+
+    var lhs = r.lhs;
+    var rhs = r.rhs;
+    var lhsStr = lhs.join(' + ');
+    var rhsStr = rhs.join(' + ');
+    var fOrder = lhs.length;  // forward reaction order
+    var bOrder = rhs.length;  // backward reaction order
+    var SUP = ['\u2070','\u00B9','\u00B2','\u00B3','\u2074',
+              '\u2075','\u2076','\u2077','\u2078','\u2079'];
+    function getKUnit(order) {
+      if (order === 1) return 's\u207B\u00B9';
+      return 'mM\u207B' + String(order - 1).split('').map(function(d){ return SUP[parseInt(d)]; }).join('') + '\u00B7s\u207B\u00B9';
+    }
+    var kfUnit = getKUnit(fOrder);
+    var kbUnit = getKUnit(bOrder);
+    var cDetail = 'Equation:  ' + lhsStr + ' ' + (r.rev ? '\u21CC' : '\u2192') + ' ' + rhsStr +
+                 '\nType: ' + (r.rev ? 'Reversible' : 'Irreversible') +
+                 '\nkf = ' + fmt(r.kf) + ' ' + kfUnit +
+                 (r.rev ? '\nkb = ' + fmt(r.kb) + ' ' + kbUnit : '');
+    var cArrSym = r.rev ? '\u21CC' : '\u2192';
+
+    // Build equation as a single text with tspans
+    var tspanParts = [];
+    // (C1) label — no tooltip
+    tspanParts.push('<tspan fill="#cc8800" font-weight="bold">(C'+r.id+')</tspan>');
+    tspanParts.push('<tspan fill="#cc8800">   </tspan>');
+    // LHS
+    lhs.forEach(function(sid, si) {
+      if (si > 0) tspanParts.push('<tspan fill="#cc8800"> + </tspan>');
+      tspanParts.push('<tspan fill="'+spColors[sid]+'" font-weight="bold" class="sp-node" data-sid="'+sid+'" data-rxn-sid="c'+r.id+'-lhs'+si+'">'+sid+'</tspan>');
+    });
+    tspanParts.push('<tspan fill="#cc8800">    </tspan>');
+    // arrow — shows reaction tooltip
+    tspanParts.push('<tspan stroke="#cc8800" stroke-width="1.2" fill="#cc8800" class="rxn-arrow" data-tip="'+cDetail.replace(/"/g,'&quot;')+'">'+cArrSym+'</tspan>');
+    tspanParts.push('<tspan fill="#cc8800">    </tspan>');
+    // RHS
+    rhs.forEach(function(sid, si) {
+      if (si > 0) tspanParts.push('<tspan fill="#cc8800"> + </tspan>');
+      tspanParts.push('<tspan fill="'+spColors[sid]+'" font-weight="bold" class="sp-node" data-sid="'+sid+'" data-rxn-sid="c'+r.id+'-rhs'+si+'">'+sid+'</tspan>');
+    });
+    h += '<text x="'+(cLeft+4).toFixed(1)+'" y="'+cy2.toFixed(1)+'"' +
+         ' text-anchor="start" dominant-baseline="central"' +
+         ' font-size="'+cTextFS+'">' +
+         tspanParts.join('') + '</text>';
+    // C reaction highlight rects (placeholders, will be positioned after rendering)
+    lhs.forEach(function(sid, si) {
+      h += '<rect class="rxn-hl" data-sid="'+sid+'" data-rxn-sid="c'+r.id+'-lhs'+si+'" rx="3" fill="none" stroke="'+spColors[sid]+'" stroke-width="0" stroke-dasharray="4,2"/>';
+    });
+    rhs.forEach(function(sid, si) {
+      h += '<rect class="rxn-hl" data-sid="'+sid+'" data-rxn-sid="c'+r.id+'-rhs'+si+'" rx="3" fill="none" stroke="'+spColors[sid]+'" stroke-width="0" stroke-dasharray="4,2"/>';
+    });
+  }
+
+  svg.innerHTML = h;
+
+  // ── Position rxn-hl rects based on actual tspan positions ──
+  svg.querySelectorAll('.rxn-hl').forEach(function(rect) {
+    var rxnSid = rect.getAttribute('data-rxn-sid');
+    var tspan = svg.querySelector('.sp-node[data-rxn-sid="'+rxnSid+'"]');
+    if (tspan) {
+      var bbox = tspan.getBBox();
+      var pad = 2;
+      rect.setAttribute('x', (bbox.x - pad).toFixed(1));
+      rect.setAttribute('y', (bbox.y - pad).toFixed(1));
+      rect.setAttribute('width', (bbox.width + pad * 2).toFixed(1));
+      rect.setAttribute('height', (bbox.height + pad * 2).toFixed(1));
+    }
+  });
+
+  // ── Tooltip ──
+  var tip = document.createElement('div');
+  tip.style.cssText = 'position:fixed;background:#0d2035;border:1px solid #2244aa;' +
+    'border-radius:6px;padding:8px 14px;font-size:12px;color:#aaccee;pointer-events:none;' +
+    'z-index:9999;display:none;line-height:2.0;max-width:240px;box-shadow:0 3px 12px rgba(0,0,0,0.5)';
+  document.body.appendChild(tip);
+
+  // Species tooltip — all species (sp-node tspans in equations + standalone)
+  svg.querySelectorAll('.sp-node').forEach(function(el) {
+    el.addEventListener('mouseenter', function() { svg.style.cursor = 'pointer'; });
+    el.addEventListener('mouseleave', function() { svg.style.cursor = 'default'; });
+    el.addEventListener('mousemove', function(ev) {
+      var sid  = parseInt(el.getAttribute('data-sid'));
+      var conc = D.conc[sid] !== undefined ? D.conc[sid] : '?';
+      var diff = D.diff[sid] !== undefined ? D.diff[sid] : '?';
+      var color = spColors[sid] || '#88bbff';
+
+      var parts = ['<b style="color:' + color + '">S' + sid + '</b>',
+                   'c\u2080 = ' + fmt(conc) + ' mM',
+                   'D = ' + fmt(diff) + ' cm\u00B2\u00B7s\u207B\u00B9'];
+
+      tip.innerHTML = parts.join('\n').replace(/\n/g, '<br>');
+      tip.style.display = 'block';
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      var elBox = el.getBoundingClientRect();
+      var midX = (elBox.left + elBox.right) / 2;
+      if (midX < window.innerWidth / 2) {
+        tip.style.left = '8px';
+      } else {
+        tip.style.left = Math.max(8, window.innerWidth - tw - 8) + 'px';
+      }
+      tip.style.top = Math.max(8, Math.min(ev.clientY - th / 2, window.innerHeight - th - 8)) + 'px';
+
+      // Highlight all species with same sid: standalone sp-hl rects + rxn-hl rects
+      svg.querySelectorAll('.sp-hl').forEach(function(hl) {
+        var parent = hl.parentElement;
+        hl.setAttribute('opacity', parent.getAttribute('data-sid') == sid ? '1' : '0');
+      });
+      svg.querySelectorAll('.rxn-hl').forEach(function(hl) {
+        hl.setAttribute('stroke-width', hl.getAttribute('data-sid') == sid ? '1.5' : '0');
+      });
+    });
+    el.addEventListener('mouseleave', function() {
+      tip.style.display = 'none';
+      svg.querySelectorAll('.sp-hl').forEach(function(hl){ hl.setAttribute('opacity','0'); });
+      svg.querySelectorAll('.rxn-hl').forEach(function(hl){ hl.setAttribute('stroke-width','0'); });
+    });
+  });
+
+  // Reaction arrow tooltip — E and C reactions
+  svg.querySelectorAll('.rxn-arrow').forEach(function(el) {
+    el.addEventListener('mouseenter', function() { svg.style.cursor = 'pointer'; });
+    el.addEventListener('mouseleave', function() { svg.style.cursor = 'default'; });
+    el.addEventListener('mousemove', function(ev) {
+      var detail = el.getAttribute('data-tip').replace(/\n/g, '<br>');
+      tip.innerHTML = detail;
+      tip.style.display = 'block';
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - tw - 8) + 'px';
+      tip.style.top  = Math.min(ev.clientY - 10, window.innerHeight - th - 8) + 'px';
+      svg.querySelectorAll('.sp-hl').forEach(function(hl){ hl.setAttribute('opacity','0'); });
+      svg.querySelectorAll('.rxn-hl').forEach(function(hl){ hl.setAttribute('stroke-width','0'); });
+    });
+    el.addEventListener('mouseleave', function() {
+      tip.style.display = 'none';
+    });
+  });
+}
+
+// ══════════════════════════════════════════════
+//  Mechanism label
 // ══════════════════════════════════════════════
 function mechLabel(D) {
   var e = D.eRxns.length, c = D.cRxns.length;
@@ -233,273 +531,6 @@ function mechLabel(D) {
   if (e === 0 && c > 0) return 'C'.repeat(c) + ' Mechanism';
   return 'EC-type (' + e + 'E + ' + c + 'C) Mechanism';
 }
-
-// ══════════════════════════════════════════════
-//  Draw SVG diagram
-// ══════════════════════════════════════════════
-function draw(D) {
-  var svg = document.getElementById('flowSvg');
-  var n = D.n;
-  if (n === 0) return;
-
-  // ── Build edge list ──
-  // edge: { from, to, type:'E'|'C', label, detail, rev }
-  var edges = [];
-  D.eRxns.forEach(function(r) {
-    if (r.ox && r.red) {
-      edges.push({
-        from: r.ox, to: r.red, type: 'E', rev: true,
-        label: 'E' + r.id,
-        detail: 'E° = ' + r.E0 + ' V\nα = ' + r.alpha + '\nk₀ = ' + r.k0,
-      });
-    }
-  });
-  D.cRxns.forEach(function(r) {
-    r.lhs.forEach(function(a) {
-      r.rhs.forEach(function(b) {
-        edges.push({
-          from: a, to: b, type: 'C', rev: r.rev,
-          label: 'C' + r.id,
-          detail: 'kf = ' + r.kf + '\nkb = ' + r.kb,
-        });
-      });
-    });
-  });
-
-  // ── BFS level assignment ──
-  var inDeg = {};
-  for (var i = 1; i <= n; i++) inDeg[i] = 0;
-  edges.forEach(function(e) { if (e.to >= 1 && e.to <= n) inDeg[e.to]++; });
-
-  var level = {};
-  var q = [];
-  for (var i = 1; i <= n; i++) {
-    if (inDeg[i] === 0) { level[i] = 0; q.push(i); }
-  }
-  if (q.length === 0) { level[1] = 0; q.push(1); }
-
-  var seen = {};
-  while (q.length) {
-    var cur = q.shift();
-    if (seen[cur]) continue;
-    seen[cur] = true;
-    edges.forEach(function(e) {
-      if (e.from === cur && !seen[e.to]) {
-        level[e.to] = Math.max(level[e.to] || 0, (level[cur] || 0) + 1);
-        q.push(e.to);
-      }
-    });
-  }
-  for (var i = 1; i <= n; i++) { if (level[i] === undefined) level[i] = 0; }
-
-  var maxLv = 0;
-  for (var i = 1; i <= n; i++) maxLv = Math.max(maxLv, level[i]);
-
-  // Group by level
-  var grp = {};
-  for (var i = 1; i <= n; i++) {
-    var lv = level[i];
-    if (!grp[lv]) grp[lv] = [];
-    grp[lv].push(i);
-  }
-  var maxPerCol = 1;
-  for (var lv = 0; lv <= maxLv; lv++) { if (grp[lv]) maxPerCol = Math.max(maxPerCol, grp[lv].length); }
-
-  // ── Layout constants ──
-  var W      = Math.min(860, window.innerWidth - 32);
-  var NR     = window.innerWidth < 500 ? 22 : 30;   // node radius
-  var cols   = maxLv + 1;
-  var colGap = Math.max(110, Math.min(180, (W - NR * 2 - 40) / Math.max(cols - 1, 1)));
-  var rowGap = Math.max(90, NR * 3.2);
-  var svgW   = 40 + NR + colGap * (cols - 1) + NR + 40;
-  var svgH   = 40 + NR + rowGap * (maxPerCol - 1) + NR + 50;
-  svgH = Math.max(svgH, 200);
-
-  svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
-  svg.setAttribute('height', svgH);
-
-  // ── Node positions ──
-  var pos = {};
-  for (var lv = 0; lv <= maxLv; lv++) {
-    var g = grp[lv] || [];
-    var totalH = rowGap * (g.length - 1);
-    var sy = (svgH - totalH) / 2;
-    g.forEach(function(sid, gi) {
-      pos[sid] = { x: 40 + NR + lv * colGap, y: sy + gi * rowGap };
-    });
-  }
-
-  // ── SVG build ──
-  var h = '';
-
-  // defs: arrowheads
-  h += '<defs>';
-  h += mkArrow('aE',  '#00ff88');
-  h += mkArrow('aEr', '#00ff88', 0.5);
-  h += mkArrow('aC',  '#ffcc44');
-  h += mkArrow('aCr', '#ffcc44', 0.5);
-  h += '</defs>';
-
-  // ── Group edges by from→to ──
-  var edgeGroups = {};  // key: from.to → [e1, e2, ...]
-  edges.forEach(function(e) {
-    var key = e.from + '.' + e.to;
-    if (!edgeGroups[key]) edgeGroups[key] = [];
-    edgeGroups[key].push(e);
-  });
-
-  var objKeys = Object.keys(edgeGroups);
-
-  // ── Edges ──
-  objKeys.forEach(function(key) {
-    var group = edgeGroups[key];
-    var from = parseInt(key.split('.')[0]);
-    var to   = parseInt(key.split('.')[1]);
-    if (!pos[from] || !pos[to]) return;
-
-    var p1 = pos[from], p2 = pos[to];
-    var dx = p2.x - p1.x, dy = p2.y - p1.y;
-    var dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < 1) return;
-    var ux = dx/dist, uy = dy/dist;
-
-    var x1 = p1.x + ux*(NR+2), y1 = p1.y + uy*(NR+2);
-    var x2 = p2.x - ux*(NR+11), y2 = p2.y - uy*(NR+11);
-
-    var nEdges = group.length;
-    var maxOff = (nEdges - 1) * 7;   // total spread
-    var startOff = -maxOff / 2;
-
-    group.forEach(function(e, gi) {
-      var color = e.type === 'E' ? '#00ff88' : '#ffcc44';
-      var dash  = e.type === 'C' ? '6,3' : 'none';
-      var aFwd  = e.type === 'E' ? 'aE' : 'aC';
-
-      var off = startOff + gi * 14;          // parallel offset for this edge
-      var ox = -uy * off, oy = ux * off;    // perpendicular to edge direction
-
-      if (e.rev) {
-        h += line(x1+ox, y1+oy, x2+ox, y2+oy, color, 2.2, dash, 'url(#'+aFwd+')');
-        h += line(x2+ox, y2+oy, x1+ox, y1+oy, color, 1.5, dash, 'url(#'+aFwd+')', 0.55);
-      } else {
-        h += line(x1+ox, y1+oy, x2+ox, y2+oy, color, 2.2, dash, 'url(#'+aFwd+')');
-      }
-
-      // edge label pill (use primary offset, center of group)
-      var labelOff = startOff + Math.floor(nEdges/2) * 14;
-      var lox = -uy * labelOff, loy = ux * labelOff;
-      var mx = (x1+x2)/2 - uy*18 + lox, my = (y1+y2)/2 + ux*18 + loy;
-      var lw = e.label.length * 7 + 12;
-      h += '<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="16" rx="5"' +
-           ' fill="rgba(10,20,38,0.88)" stroke="'+color+'" stroke-width="0.8" opacity="0.9"/>';
-      h += '<text x="'+mx+'" y="'+(my+4)+'" text-anchor="middle"' +
-           ' font-size="11" font-weight="bold" fill="'+color+'">'+e.label+'</text>';
-
-      // invisible wide hit area
-      h += '<line x1="'+(x1+ox)+'" y1="'+(y1+oy)+'" x2="'+(x2+ox)+'" y2="'+(y2+oy)+'"' +
-           ' stroke="transparent" stroke-width="18"' +
-           ' class="edge-hit" data-lbl="'+e.label+'" data-detail="'+encEsc(e.detail)+'" data-color="'+color+'"/>';
-    });
-  });
-
-  // ── Nodes ──
-  for (var si = 1; si <= n; si++) {
-    var p = pos[si];
-    if (!p) continue;
-
-    var concStr = D.conc[si] !== undefined ? D.conc[si]+' mM' : '–';
-    var diffStr = D.diff[si] !== undefined ? D.diff[si]+' cm²/s' : '–';
-    var roles   = getSpeciesRoles(si, D);
-    var detail  = 'Conc: '+concStr+'\nD: '+diffStr+(roles.length ? '\n'+roles.join('\n') : '');
-
-    // outer glow
-    h += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(NR+8)+'"' +
-         ' fill="rgba(102,204,255,0.05)"/>';
-    // node circle
-    h += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+NR+'"' +
-         ' fill="rgba(12,28,52,0.92)" stroke="#66ccff" stroke-width="2"' +
-         ' class="node" data-si="'+si+'" data-detail="'+encEsc(detail)+'"' +
-         ' style="cursor:pointer"/>';
-    // label
-    var fs = window.innerWidth < 500 ? 12 : 15;
-    h += '<text x="'+p.x+'" y="'+(p.y+fs/2-1)+'" text-anchor="middle"' +
-         ' font-size="'+fs+'" fill="#ffffff" font-weight="bold" pointer-events="none">S'+si+'</text>';
-    // concentration subtitle
-    h += '<text x="'+p.x+'" y="'+(p.y+NR+16)+'" text-anchor="middle"' +
-         ' font-size="9" fill="#3d6688" pointer-events="none">'+concStr+'</text>';
-  }
-
-  svg.innerHTML = h;
-
-  // ── Tooltip ──
-  var tip = document.getElementById('tip');
-
-  function showTip(x, y, content, color) {
-    tip.innerHTML = content.replace(/\n/g, '<br>');
-    if (color) tip.style.borderColor = color;
-    tip.style.display = 'block';
-    var tw = tip.offsetWidth, th = tip.offsetHeight;
-    var wx = window.innerWidth, wy = window.innerHeight;
-    tip.style.left = Math.min(x + 14, wx - tw - 8) + 'px';
-    tip.style.top  = Math.min(y - 10, wy - th - 8) + 'px';
-  }
-  function hideTip() { tip.style.display = 'none'; }
-
-  svg.querySelectorAll('.node').forEach(function(el) {
-    el.addEventListener('mousemove', function(ev) {
-      var si = el.getAttribute('data-si');
-      showTip(ev.clientX, ev.clientY,
-        '<b style="color:#66ccff">S'+si+'</b>\n' + decEsc(el.getAttribute('data-detail')), '#66ccff');
-    });
-    el.addEventListener('mouseleave', hideTip);
-    el.addEventListener('touchstart', function(ev) {
-      ev.preventDefault();
-      var si = el.getAttribute('data-si');
-      var r = el.getBoundingClientRect();
-      showTip(r.right, r.top,
-        '<b style="color:#66ccff">S'+si+'</b>\n' + decEsc(el.getAttribute('data-detail')), '#66ccff');
-      setTimeout(hideTip, 3000);
-    });
-  });
-
-  svg.querySelectorAll('.edge-hit').forEach(function(el) {
-    el.addEventListener('mousemove', function(ev) {
-      var lbl = el.getAttribute('data-lbl');
-      var color = el.getAttribute('data-color');
-      showTip(ev.clientX, ev.clientY,
-        '<b style="color:'+color+'">'+lbl+'</b>\n' + decEsc(el.getAttribute('data-detail')), color);
-    });
-    el.addEventListener('mouseleave', hideTip);
-  });
-}
-
-// ── helpers ──
-function mkArrow(id, color, op) {
-  var o = op ? ' opacity="'+op+'"' : '';
-  return '<marker id="'+id+'" markerWidth="9" markerHeight="8" refX="7" refY="4" orient="auto">' +
-         '<path d="M0,0 L0,8 L9,4 z" fill="'+color+'"'+o+'/></marker>';
-}
-function line(x1,y1,x2,y2,color,sw,dash,markerEnd,op) {
-  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'"' +
-    ' stroke="'+color+'" stroke-width="'+sw+'"' +
-    (dash && dash !== 'none' ? ' stroke-dasharray="'+dash+'"' : '') +
-    (markerEnd ? ' marker-end="'+markerEnd+'"' : '') +
-    (op ? ' opacity="'+op+'"' : '') + '/>';
-}
-function getSpeciesRoles(si, D) {
-  var r = [];
-  D.eRxns.forEach(function(rx) {
-    if (rx.ox  === si) r.push('Oxidized in E'+rx.id);
-    if (rx.red === si) r.push('Reduced in E'+rx.id);
-  });
-  D.cRxns.forEach(function(rx) {
-    if (rx.lhs.indexOf(si) !== -1) r.push('Reactant in C'+rx.id);
-    if (rx.rhs.indexOf(si) !== -1) r.push('Product in C'+rx.id);
-  });
-  return r;
-}
-function encEsc(s) { return (s||'').replace(/"/g,'&quot;').replace(/\n/g,'&#10;'); }
-function decEsc(s) { return (s||'').replace(/&quot;/g,'"').replace(/&#10;/g,'\n'); }
 
 // ══════════════════════════════════════════════
 //  Entry point
@@ -515,7 +546,6 @@ function decEsc(s) { return (s||'').replace(/&quot;/g,'"').replace(/&#10;/g,'\n'
     document.getElementById('errorMsg').style.display = 'block';
     return;
   }
-
   document.getElementById('mechLabel').textContent = mechLabel(D);
   document.getElementById('diagramWrap').style.display = 'block';
   draw(D);
