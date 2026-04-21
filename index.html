@@ -335,6 +335,7 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
   <button type="button" id="btnClear" class="btn-gray">Clear</button>
   <button type="button" id="btnChk" class="btn-dark">&#128203; Check File (.chk)</button>
   <button type="button" id="btnLog" class="btn-dark">&#128203; Usage Log</button>
+  <button type="button" id="btnViewMechanism" class="btn-dark" title="View reaction mechanism diagram">&#9879; View Mechanism</button>
   <span id="fileName"></span>
   <span id="logStatus" style="font-size:11px;color:#666;"></span>
 </div>
@@ -1055,6 +1056,14 @@ function doClear() {
   updateSaveButtons();
 }
 document.getElementById('btnClear').onclick = doClear;
+
+// View Mechanism button
+document.getElementById('btnViewMechanism').onclick = function() {
+  var atn = document.getElementById('inputEditor').value;
+  if (!atn.trim()) { alert('Please load an ATN file first!'); return; }
+  sessionStorage.setItem('_ecnetsim_atn', atn);
+  window.open('reaction-viewer.html', '_blank');
+};
 
 // Download netlist
 document.getElementById('btnDownload').onclick = function() {
