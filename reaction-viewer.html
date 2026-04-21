@@ -340,47 +340,66 @@ function draw(D) {
   h += mkArrow('aCr', '#ffcc44', 0.5);
   h += '</defs>';
 
-  // ── Edges ──
+  // ── Group edges by from→to ──
+  var edgeGroups = {};  // key: from.to → [e1, e2, ...]
   edges.forEach(function(e) {
-    if (!pos[e.from] || !pos[e.to]) return;
-    var p1 = pos[e.from], p2 = pos[e.to];
-    var color = e.type === 'E' ? '#00ff88' : '#ffcc44';
-    var dash  = e.type === 'C' ? '6,3' : 'none';
-    var aFwd  = e.type === 'E' ? 'aE' : 'aC';
-    var aRev  = e.type === 'E' ? 'aEr' : 'aCr';
+    var key = e.from + '.' + e.to;
+    if (!edgeGroups[key]) edgeGroups[key] = [];
+    edgeGroups[key].push(e);
+  });
 
+  var objKeys = Object.keys(edgeGroups);
+
+  // ── Edges ──
+  objKeys.forEach(function(key) {
+    var group = edgeGroups[key];
+    var from = parseInt(key.split('.')[0]);
+    var to   = parseInt(key.split('.')[1]);
+    if (!pos[from] || !pos[to]) return;
+
+    var p1 = pos[from], p2 = pos[to];
     var dx = p2.x - p1.x, dy = p2.y - p1.y;
     var dist = Math.sqrt(dx*dx + dy*dy);
     if (dist < 1) return;
     var ux = dx/dist, uy = dy/dist;
 
-    // shrink endpoints to node edge
     var x1 = p1.x + ux*(NR+2), y1 = p1.y + uy*(NR+2);
     var x2 = p2.x - ux*(NR+11), y2 = p2.y - uy*(NR+11);
 
-    var ox = -uy*5, oy = ux*5;  // perpendicular offset
+    var nEdges = group.length;
+    var maxOff = (nEdges - 1) * 7;   // total spread
+    var startOff = -maxOff / 2;
 
-    if (e.rev) {
-      // forward (offset +)
-      h += line(x1+ox, y1+oy, x2+ox, y2+oy, color, 2.2, dash, 'url(#'+aFwd+')');
-      // reverse (offset -)
-      h += line(x2-ox, y2-oy, x1-ox, y1-oy, color, 1.5, dash, 'url(#'+aFwd+')', 0.5);
-    } else {
-      h += line(x1, y1, x2, y2, color, 2.2, dash, 'url(#'+aFwd+')');
-    }
+    group.forEach(function(e, gi) {
+      var color = e.type === 'E' ? '#00ff88' : '#ffcc44';
+      var dash  = e.type === 'C' ? '6,3' : 'none';
+      var aFwd  = e.type === 'E' ? 'aE' : 'aC';
 
-    // edge label (background pill + text)
-    var mx = (x1+x2)/2 - uy*18, my = (y1+y2)/2 + ux*18;
-    var lw = e.label.length * 7 + 12;
-    h += '<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="16" rx="5"' +
-         ' fill="rgba(10,20,38,0.88)" stroke="'+color+'" stroke-width="0.8" opacity="0.9"/>';
-    h += '<text x="'+mx+'" y="'+(my+4)+'" text-anchor="middle"' +
-         ' font-size="11" font-weight="bold" fill="'+color+'">'+e.label+'</text>';
+      var off = startOff + gi * 14;          // parallel offset for this edge
+      var ox = -uy * off, oy = ux * off;    // perpendicular to edge direction
 
-    // invisible wide hit area for hover
-    h += '<line x1="'+(x1)+'" y1="'+(y1)+'" x2="'+(x2)+'" y2="'+(y2)+'"' +
-         ' stroke="transparent" stroke-width="18"' +
-         ' class="edge-hit" data-lbl="'+e.label+'" data-detail="'+encEsc(e.detail)+'" data-color="'+color+'"/>';
+      if (e.rev) {
+        h += line(x1+ox, y1+oy, x2+ox, y2+oy, color, 2.2, dash, 'url(#'+aFwd+')');
+        h += line(x2+ox, y2+oy, x1+ox, y1+oy, color, 1.5, dash, 'url(#'+aFwd+')', 0.55);
+      } else {
+        h += line(x1+ox, y1+oy, x2+ox, y2+oy, color, 2.2, dash, 'url(#'+aFwd+')');
+      }
+
+      // edge label pill (use primary offset, center of group)
+      var labelOff = startOff + Math.floor(nEdges/2) * 14;
+      var lox = -uy * labelOff, loy = ux * labelOff;
+      var mx = (x1+x2)/2 - uy*18 + lox, my = (y1+y2)/2 + ux*18 + loy;
+      var lw = e.label.length * 7 + 12;
+      h += '<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="16" rx="5"' +
+           ' fill="rgba(10,20,38,0.88)" stroke="'+color+'" stroke-width="0.8" opacity="0.9"/>';
+      h += '<text x="'+mx+'" y="'+(my+4)+'" text-anchor="middle"' +
+           ' font-size="11" font-weight="bold" fill="'+color+'">'+e.label+'</text>';
+
+      // invisible wide hit area
+      h += '<line x1="'+(x1+ox)+'" y1="'+(y1+oy)+'" x2="'+(x2+ox)+'" y2="'+(y2+oy)+'"' +
+           ' stroke="transparent" stroke-width="18"' +
+           ' class="edge-hit" data-lbl="'+e.label+'" data-detail="'+encEsc(e.detail)+'" data-color="'+color+'"/>';
+    });
   });
 
   // ── Nodes ──
