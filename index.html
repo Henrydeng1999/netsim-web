@@ -24,6 +24,12 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
   justify-content:center; align-items:flex-start;
   padding-top:40px;
 }
+#splashLogo {
+  position:absolute; top:20px; left:20px;
+  width:64px; height:64px;
+  border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
 #splashContent {
   text-align:left; font-family:'Courier New','Consolas',monospace;
   line-height:1.8; max-width:720px; width:90%; animation:splashFadeIn .8s ease-out;
@@ -286,6 +292,7 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
 
 <!-- ========== Splash Screen ========== -->
 <div id="splashScreen">
+  <img id="splashLogo" src="icon-256x256.png" alt="Logo">
   <div id="splashContent">
     <div class="splash-title">ecNetSimWeb V7.0 (under test)</div>
     <div class="splash-subtitle">(for WINXP,7,8,10,11 / macOS / Linux / Mobile)</div>
