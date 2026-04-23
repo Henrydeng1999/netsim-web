@@ -69,6 +69,14 @@ h1 {
 }
 .zone-lbl-e { fill: #00ff88; }
 .zone-lbl-c { fill: #ffaa00; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.blink-warn {
+  animation: blink 1s infinite;
+  fill: #ffff00 !important;
+}
 </style>
 </head>
 <body>
@@ -225,9 +233,12 @@ function parseATN(text) {
         lhs = sides[0].split('+').map(function(s){ return parseInt(s.trim()); }).filter(Boolean);
         rhs = sides[1].split('+').map(function(s){ return parseInt(s.trim()); }).filter(Boolean);
       }
+      var kfStr = pp[1] ? pp[1].trim() : '?';
+      var kbStr = pp[2] ? pp[2].trim() : '?';
+      var kfNum = parseFloat(kfStr) || 0;
+      var kbNum = parseFloat(kbStr) || 0;
       D.cRxns.push({ id: i + 1, rawEq: eq, lhs: lhs, rhs: rhs, rev: rev,
-        kf: pp[1] ? pp[1].trim() : '?',
-        kb: pp[2] ? pp[2].trim() : '?',
+        kf: kfStr, kb: kbStr, kfNum: kfNum, kbNum: kbNum,
       });
     });
   }
@@ -483,11 +494,24 @@ function draw(D) {
     }
     var kfUnit = getKUnit(fOrder);
     var kbUnit = getKUnit(bOrder);
-    var cDetail = 'Equation:  ' + lhsStr + ' ' + (r.rev ? '\u21CC' : '\u2192') + ' ' + rhsStr +
-                 '\nType: ' + (r.rev ? 'Reversible' : 'Irreversible') +
-                 '\nkf = ' + fmt(r.kf) + ' ' + kfUnit +
-                 (r.rev ? '\nkb = ' + fmt(r.kb) + ' ' + kbUnit : '');
-    var cArrSym = r.rev ? '\u21CC' : '\u2192';
+    // Determine arrow based on kf and kb values (not input arrow symbol)
+    var kfZero = (r.kfNum === 0);
+    var kbZero = (r.kbNum === 0);
+    var bothZero = kfZero && kbZero;  // kfc=0 and kbc=0 = no input
+    var isRev = !kfZero && !kbZero;  // both non-zero = reversible
+    var isIrrev = kfZero || kbZero;  // either zero = irreversible
+    var cArrSym = bothZero ? '\u2014' : (isRev ? '\u21CC' : (kfZero ? '\u2190' : '\u2192'));
+    var typeLabel = bothZero ? 'n/a' : (isRev ? 'Reversible' : 'Irreversible');
+    // Unicode subscript mapping
+    var SUB = ['\u2080','\u2081','\u2082','\u2083','\u2084',
+               '\u2085','\u2086','\u2087','\u2088','\u2089'];
+    function toSub(n) {
+      return String(n).split('').map(function(d){ return SUB[parseInt(d)] || d; }).join('');
+    }
+    var cDetail = 'Equation:  ' + lhsStr + ' ' + cArrSym + ' ' + rhsStr +
+                 '\nType: ' + typeLabel +
+                 '\nk' + toSub(r.id) + ' = ' + fmt(r.kf) + ' ' + kfUnit +
+                 '\nk\u208B' + toSub(r.id) + ' = ' + fmt(r.kb) + ' ' + kbUnit;
 
     // Build equation as a single text with tspans
     var tspanParts = [];
@@ -508,6 +532,11 @@ function draw(D) {
       if (si > 0) tspanParts.push('<tspan fill="#ffaa00"> + </tspan>');
       tspanParts.push('<tspan fill="'+spColors[sid]+'" font-weight="bold" class="sp-node" data-sid="'+sid+'" data-rxn-sid="c'+r.id+'-rhs'+si+'">'+sid+'</tspan>');
     });
+    // Warning label for kfc=kbc=0 reactions
+    if (bothZero) {
+      var warnTip = 'Both kfc=0 and kbc=0!';
+      tspanParts.push('<tspan class="blink-warn warning-label" data-tip="'+warnTip.replace(/"/g,'&quot;')+'" font-weight="bold"> (Warning!)</tspan>');
+    }
     h += '<text x="'+(cLeft+4).toFixed(1)+'" y="'+cy2.toFixed(1)+'"' +
          ' text-anchor="start" dominant-baseline="central"' +
          ' font-size="'+cTextFS+'">' +
@@ -599,6 +628,23 @@ function draw(D) {
       tip.style.top  = Math.min(ev.clientY - 10, window.innerHeight - th - 8) + 'px';
       svg.querySelectorAll('.sp-hl').forEach(function(hl){ hl.setAttribute('opacity','0'); });
       svg.querySelectorAll('.rxn-hl').forEach(function(hl){ hl.setAttribute('stroke-width','0'); });
+    });
+    el.addEventListener('mouseleave', function() {
+      tip.style.display = 'none';
+    });
+  });
+
+  // Warning label tooltip — for kfc=kbc=0 reactions
+  svg.querySelectorAll('.warning-label').forEach(function(el) {
+    el.addEventListener('mouseenter', function() { svg.style.cursor = 'pointer'; });
+    el.addEventListener('mouseleave', function() { svg.style.cursor = 'default'; });
+    el.addEventListener('mousemove', function(ev) {
+      var detail = el.getAttribute('data-tip').replace(/\n/g, '<br>');
+      tip.innerHTML = detail;
+      tip.style.display = 'block';
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - tw - 8) + 'px';
+      tip.style.top  = Math.min(ev.clientY - 10, window.innerHeight - th - 8) + 'px';
     });
     el.addEventListener('mouseleave', function() {
       tip.style.display = 'none';

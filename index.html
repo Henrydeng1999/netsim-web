@@ -972,6 +972,8 @@ function escapeHtml(text) {
 }
 
 async function doAutoGenerate(inputFileName) {
+  // 同步输入框内容到 _currentATN，确保使用最新修改
+  _currentATN = document.getElementById('inputEditor').value;
   var atn = _currentATN;
   if (!atn) return;
 
@@ -1000,25 +1002,36 @@ async function doAutoGenerate(inputFileName) {
       document.getElementById('status').innerText = '\u26D4\uFE0F Parse error: ' + data.error;
       document.getElementById('status').style.color = 'red';
     } else {
-      document.getElementById('output').value = data.netlist || '';
-      // 保存 netlist 格式
-      _savedNetlistFormat = data.netlistFormat || 'sp';
-
       var errors = data.errors || [];
-      if (errors.length > 0) {
-        showErrorsInOutput(errors);
-      }
-
       var hasFatal = errors.some(function(e) { return e.type === 'fatal'; });
+      
+      // 如果有 fatal error，不显示 netlist，只显示错误
       if (hasFatal) {
-        document.getElementById('status').innerText = '\u26D4\uFE0F Netlist generation failed \u2014 fatal errors!';
+        var errMsgs = errors.map(function(e) { return '* ' + (e.header || '') + ' ' + (e.message || ''); }).join('\n');
+        document.getElementById('output').value = '*\u7F51\u8868\u751F\u6210\u5931\u8D25\u2014\u547D\u4EE4\u9519\u8BEF\n' + errMsgs;
+        document.getElementById('output').style.color = '#ff3333';
+        document.getElementById('status').innerText = '\u26D4\uFE0F Netlist generation failed';
         document.getElementById('status').style.color = 'red';
-      } else if (errors.length > 0) {
-        document.getElementById('status').innerText = '\u26A0\uFE0F Netlist generated (with warnings)';
-        document.getElementById('status').style.color = 'orange';
       } else {
-        document.getElementById('status').innerText = '\u2705 Netlist generated successfully!';
-        document.getElementById('status').style.color = 'green';
+        var nonFatalErrors = errors.filter(function(e) { return e.type !== 'fatal'; });
+        
+        if (nonFatalErrors.length > 0) {
+          // 构建错误头部（红色注释）
+          var errHeader = nonFatalErrors.map(function(e) {
+            var icon = e.type === 'compat' ? '* [ERROR]' : '* [WARN]';
+            return icon + ' ' + (e.header || '') + ' ' + (e.message || '');
+          }).join('\n');
+          document.getElementById('output').value = errHeader + '\n*\n' + (data.netlist || '');
+          document.getElementById('output').style.color = '#ff3333';
+          document.getElementById('status').innerText = '\u26A0\uFE0F Netlist generated (with warnings)';
+          document.getElementById('status').style.color = 'orange';
+        } else {
+          document.getElementById('output').value = data.netlist || '';
+          document.getElementById('output').style.color = '#228B22';
+          document.getElementById('status').innerText = '\u2705 Netlist generated successfully!';
+          document.getElementById('status').style.color = 'green';
+        }
+        _savedNetlistFormat = data.netlistFormat || 'sp';
       }
     }
     updateSaveButtons();
@@ -1039,6 +1052,7 @@ async function doAutoGenerate(inputFileName) {
 // Clear 按钮功能
 function doClear() {
   document.getElementById('output').value = '';
+  document.getElementById('output').style.color = '';
   document.getElementById('inputEditor').value = '';
   var errEl = document.getElementById('errorInOutput');
   if (errEl) { errEl.innerHTML = ''; errEl.style.display = 'none'; }
@@ -1059,8 +1073,51 @@ document.getElementById('btnClear').onclick = doClear;
 
 // View Mechanism button
 document.getElementById('btnViewMechanism').onclick = function() {
+  if (!isVerified('View Mechanism')) return;
   var atn = document.getElementById('inputEditor').value;
   if (!atn.trim()) { alert('Please load an ATN file first!'); return; }
+  // Check for HCR reactions with both kfc=0 and kbc=0
+  var atnLines = atn.split(/\r?\n/);
+  var hcrLines = [];
+  var inHcr = false;
+  for (var i = 0; i < atnLines.length; i++) {
+    var line = atnLines[i];
+    if (/Homogeneous Chemical Reactions/i.test(line)) {
+      inHcr = true;
+      continue;
+    }
+    if (inHcr && line.trim().startsWith('[')) break;
+    if (inHcr && line.trim()) hcrLines.push(line.trim());
+  }
+  if (hcrLines.length > 0) {
+    var invalid = [];
+    for (var i = 0; i < hcrLines.length; i++) {
+      var line = hcrLines[i].replace(/\.\s*$/, '');
+      if (!line) continue;
+      var parts = line.split(/;/);
+      for (var j = 0; j < parts.length; j++) {
+        var p = parts[j].replace(/\.$/, '').trim();
+        if (!p) continue;
+        var pp = p.split('|');
+        var eq = pp[0].trim();
+        if (!eq) continue;
+        var kfc = parseFloat(pp[1]) || 0;
+        var kbc = parseFloat(pp[2]) || 0;
+        if (kfc === 0 && kbc === 0) {
+          invalid.push(eq);
+        }
+      }
+    }
+    if (invalid.length > 0) {
+      // 显示警告但不阻止打开
+      var output = document.getElementById('output');
+      var errLines = invalid.map(function(eq) {
+        return '[ERROR] <Warning!> Homogeneous reaction "' + eq + '|0|0." has both kfc=0 and kbc=0!';
+      });
+      output.value = errLines.join('\n');
+      output.style.color = '#ff3333';
+    }
+  }
   sessionStorage.setItem('_ecnetsim_atn', atn);
   window.open('reaction-viewer.html', '_blank');
 };
@@ -1281,21 +1338,30 @@ function updateFromEditor() {
       
       // 如果有 fatal error，不显示 netlist，只显示错误
       if (hasFatal) {
-        var errMsgs = errors.map(function(e) { return e.header + ' ' + e.message; }).join('\n');
-        document.getElementById('output').value = '❌ Parse Errors:\n\n' + errMsgs;
-        document.getElementById('status').innerText = '❌ Netlist generation failed';
+        var errMsgs = errors.map(function(e) { return '* ' + (e.header || '') + ' ' + (e.message || ''); }).join('\n');
+        document.getElementById('output').value = '*\u7F51\u8868\u751F\u6210\u5931\u8D25\u2014\u547D\u4EE4\u9519\u8BEF\n' + errMsgs;
+        document.getElementById('output').style.color = '#ff3333';
+        document.getElementById('status').innerText = '\u26D4\uFE0F Netlist generation failed';
         document.getElementById('status').style.color = 'red';
       } else {
-        document.getElementById('output').value = data.netlist || '';
-        _savedNetlistFormat = data.netlistFormat || 'sp';
+        var nonFatalErrors = errors.filter(function(e) { return e.type !== 'fatal'; });
         
-        if (errors.length > 0) {
-          document.getElementById('status').innerText = '⚠️ Netlist generated (with warnings)';
+        if (nonFatalErrors.length > 0) {
+          var errHeader = nonFatalErrors.map(function(e) {
+            var icon = e.type === 'compat' ? '* [ERROR]' : '* [WARN]';
+            return icon + ' ' + (e.header || '') + ' ' + (e.message || '');
+          }).join('\n');
+          document.getElementById('output').value = errHeader + '\n*\n' + (data.netlist || '');
+          document.getElementById('output').style.color = '#ff3333';
+          document.getElementById('status').innerText = '\u26A0\uFE0F Netlist generated (with warnings)';
           document.getElementById('status').style.color = 'orange';
         } else {
-          document.getElementById('status').innerText = '✅ Netlist generated successfully!';
+          document.getElementById('output').value = data.netlist || '';
+          document.getElementById('output').style.color = '#228B22';
+          document.getElementById('status').innerText = '\u2705 Netlist generated successfully!';
           document.getElementById('status').style.color = 'green';
         }
+        _savedNetlistFormat = data.netlistFormat || 'sp';
       }
     }
     updateSaveButtons();
