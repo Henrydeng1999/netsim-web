@@ -417,7 +417,7 @@ function draw(D) {
     var arrSymE = r.rev ? '\u21CC' : '\u2192';
     var eElectron = neStr + 'e\u207B';   // e.g. "2e⁻" or "e⁻"
     var eDetail;
-    var rxnType = r.isOx ? (r.rev ? 'Reversible oxidation' : 'Irreversible oxidation') : (r.rev ? 'Reversible reduction' : 'Irreversible reduction');
+    var rxnType = r.isOx ? (r.rev ? 'Reversible / Forward oxidation' : 'Irreversible oxidation') : (r.rev ? 'Reversible / Forward reduction' : 'Irreversible reduction');
     if (r.isOx) {
       eDetail = 'Equation:  ' + eqOxStr + ' - ' + eElectron + ' ' + arrSymE + ' ' + eqRedStr +
                 '\nType: ' + rxnType +
