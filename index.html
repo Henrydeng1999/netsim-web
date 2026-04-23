@@ -24,11 +24,11 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
   justify-content:center; align-items:flex-start;
   padding-top:40px;
 }
-#splashLogo {
-  position:absolute; top:20px; left:20px;
-  width:64px; height:64px;
-  border-radius:8px;
-  box-shadow:0 2px 8px rgba(0,0,0,.4);
+#pageLogo {
+  position:absolute; top:15px; left:15px;
+  width:48px; height:48px;
+  border-radius:6px;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
 }
 #splashContent {
   text-align:left; font-family:'Courier New','Consolas',monospace;
@@ -292,7 +292,6 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
 
 <!-- ========== Splash Screen ========== -->
 <div id="splashScreen">
-  <img id="splashLogo" src="icon-256x256.png" alt="Logo">
   <div id="splashContent">
     <div class="splash-title">ecNetSimWeb V7.0 (under test)</div>
     <div class="splash-subtitle">(for WINXP,7,8,10,11 / macOS / Linux / Mobile)</div>
@@ -324,6 +323,7 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
 <!-- ========== Main UI (visible after splash) ========== -->
 <div id="mainUI">
 
+<img id="pageLogo" src="icon-256x256.png" alt="Logo">
 <h1>ecNetSimWeb Netlist Generator</h1>
 <p class="subtitle">Select an ATN file to auto-generate SPICE netlist (*.net, *.cir, or *.sp) for electrochemical simulation</p>
 
