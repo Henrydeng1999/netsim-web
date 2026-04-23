@@ -29,13 +29,16 @@ p.subtitle { color:#666; margin:-4px 0 10px; text-align:center; font-size: 13px;
   width:48px; height:48px;
   border-radius:6px;
 }
+@media (max-width:600px), (-webkit-min-device-pixel-ratio:2) {
+  #pageLogo, #splashQR { display:none; }
+}
 #splashQR {
   position:absolute; top:15px; left:15px;
   width:120px; height:120px;
   border-radius:8px;
   box-shadow:0 4px 12px rgba(0,0,0,.4);
 }
-@media (max-width:768px), (-webkit-min-device-pixel-ratio:2) {
+@media (max-width:600px), (-webkit-min-device-pixel-ratio:2) {
   #splashQR { display:none; }
 }
 #splashContent {
